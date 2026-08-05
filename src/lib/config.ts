@@ -6,7 +6,7 @@ export const CONFIG = {
     'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im50YXZldGptZm90bHdtY2d3c2p1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDQwNTAzNDksImV4cCI6MjA1OTYyNjM0OX0.jWCJr4qPHjiun2BCdx8U4Oi7cQ2gQmU-D0vrk10FGao',
 } as const
 
-// Módulos por plataforma. TikTok liga quando os scopes aprovarem (re-auth + flag true).
+// Módulos por plataforma. TikTok LIGADO 06/08/2026 (scopes aprovados + re-auth).
 export const FEATURES = {
-  tiktok: false,
+  tiktok: true,
 } as const
