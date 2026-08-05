@@ -48,7 +48,8 @@ a { color: var(--blue); }
   background: none; color: var(--muted); font-size: 11px;
   padding: 6px 8px; min-width: 44px; min-height: 44px;
 }
-.tabs button.on { color: var(--accent); }
+.tabs button.on { color: var(--accent); font-weight: 700; border-top: 2px solid var(--accent); margin-top: -2px; }
+@media (min-width: 720px) { .tabs button.on { border-top: none; border-bottom: 2px solid var(--accent); margin: 0 0 -1px; } }
 .tabs button:active { transform: scale(0.96); }
 @media (min-width: 720px) {
   .tabs { position: sticky; top: 0; bottom: auto; border-top: none; border-bottom: 1px solid var(--line); border-radius: var(--radius); margin-bottom: 14px; }
@@ -86,7 +87,13 @@ a { color: var(--blue); }
 .btn:disabled { opacity: 0.5; cursor: default; }
 
 .filtros { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 12px; }
-.filtros select, .filtros input { flex: 1; min-width: 130px; }
+.filtros select, .filtros input { flex: 1; min-width: 130px; min-height: 44px; }
+
+/* alvo de toque >=44px pra controles visualmente pequenos (checkbox, link externo) */
+.alvo-toque { display: inline-flex; align-items: center; justify-content: center; min-width: 44px; min-height: 44px; margin: -12px -8px; }
+.alvo-toque input[type='checkbox'] { width: 18px; height: 18px; }
+
+.feito { color: var(--green); font-size: 13.5px; margin-top: 8px; }
 
 .vazio { text-align: center; color: var(--muted); padding: 48px 16px; }
 .vazio .emoji { font-size: 40px; display: block; margin-bottom: 10px; }

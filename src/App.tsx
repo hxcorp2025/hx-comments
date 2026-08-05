@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useCallback } from 'react'
 import type { Session } from '@supabase/supabase-js'
 import { Inbox, Music2, Facebook, Instagram, ShieldBan, BarChart3, ScrollText, LogOut } from 'lucide-react'
 import { sb } from './lib/supabase'
@@ -29,6 +29,8 @@ export default function App() {
   const [aba, setAba] = useState<Aba>('fila')
   const [templates, setTemplates] = useState<Template[]>([])
   const [negado, setNegado] = useState(false)
+  const [papel, setPapel] = useState('operador')
+  const [filaN, setFilaN] = useState<number | null>(null)
 
   useEffect(() => {
     sb.auth.getSession().then(({ data }) => { setSession(data.session); setPronto(true) })
@@ -38,15 +40,20 @@ export default function App() {
 
   useEffect(() => {
     if (!session) return
-    // allowlist: se não é operador, a RLS devolve vazio em painel_operadores
-    sb.from('painel_operadores').select('email').eq('email', session.user.email).then(({ data }) => {
+    // allowlist + papel vêm do banco (a RLS devolve vazio pra quem não é operador)
+    sb.from('painel_operadores').select('email, papel').eq('email', session.user.email).then(({ data }) => {
       if (!data || data.length === 0) setNegado(true)
       else {
         setNegado(false)
+        setPapel(data[0].papel)
         listTemplates().then(setTemplates).catch(console.error)
+        sb.from('ad_comments').select('id', { count: 'exact', head: true }).eq('status', 'revisao')
+          .then(({ count }) => setFilaN(count ?? 0))
       }
     })
   }, [session])
+
+  const onContagem = useCallback((n: number) => setFilaN(n), [])
 
   if (!pronto) return null
   if (!session) return <Login />
@@ -64,7 +71,7 @@ export default function App() {
     )
   }
 
-  const admin = session.user.email === 'matheus@hookmidia.com'
+  const admin = papel === 'admin'
 
   return (
     <div className="app">
@@ -80,14 +87,15 @@ export default function App() {
 
       <nav className="tabs" aria-label="abas">
         {ABAS.map(({ id, rotulo, Icone }) => (
-          <button key={id} className={aba === id ? 'on' : ''} onClick={() => setAba(id)}>
+          <button key={id} className={aba === id ? 'on' : ''} onClick={() => setAba(id)}
+            aria-current={aba === id ? 'page' : undefined}>
             <Icone size={19} />
-            {rotulo}
+            {id === 'fila' && filaN !== null && filaN > 0 ? `${rotulo} · ${filaN}` : rotulo}
           </button>
         ))}
       </nav>
 
-      {aba === 'fila' && <Fila templates={templates} admin={admin} />}
+      {aba === 'fila' && <Fila templates={templates} admin={admin} onContagem={onContagem} />}
       {aba === 'tiktok' && <Feed plataforma="tiktok" templates={templates} admin={admin} />}
       {aba === 'fb' && <Feed plataforma="fb" templates={templates} admin={admin} />}
       {aba === 'ig' && <Feed plataforma="ig" templates={templates} admin={admin} />}

@@ -1,28 +1,35 @@
-import { useEffect, useState, useCallback } from 'react'
+import { useEffect, useState, useRef, useCallback } from 'react'
 import type { Comment, Plataforma, Template } from '../lib/types'
 import { listFeed } from '../lib/db'
 import { FEATURES } from '../lib/config'
 import CommentCard from '../components/CommentCard'
 
+type Estado = 'carregando' | 'ok' | 'erro'
+
 export default function Feed({ plataforma, templates, admin }: { plataforma: Plataforma; templates: Template[]; admin: boolean }) {
   const [itens, setItens] = useState<Comment[]>([])
+  const [estado, setEstado] = useState<Estado>('carregando')
   const [status, setStatus] = useState('')
   const [classe, setClasse] = useState('')
   const [busca, setBusca] = useState('')
-  const [carregando, setCarregando] = useState(false)
+  const seq = useRef(0)
 
   const carregar = useCallback(() => {
-    setCarregando(true)
+    const minha = ++seq.current // resposta velha nunca sobrescreve filtro novo
+    setEstado('carregando')
     listFeed({ plataforma, status: status || undefined, classe: classe || undefined, busca: busca || undefined })
-      .then(setItens)
-      .catch(console.error)
-      .finally(() => setCarregando(false))
+      .then((r) => { if (seq.current === minha) { setItens(r); setEstado('ok') } })
+      .catch(() => { if (seq.current === minha) setEstado('erro') })
   }, [plataforma, status, classe, busca])
 
   useEffect(() => {
     const t = setTimeout(carregar, 300)
     return () => clearTimeout(t)
   }, [carregar])
+
+  function patch(id: number, p: Partial<Comment>) {
+    setItens((xs) => xs.map((c) => (c.id === id ? { ...c, ...p } : c)))
+  }
 
   if (plataforma === 'tiktok' && !FEATURES.tiktok) {
     return (
@@ -37,7 +44,8 @@ export default function Feed({ plataforma, templates, admin }: { plataforma: Pla
   return (
     <div>
       <div className="filtros">
-        <input placeholder="buscar no texto…" value={busca} onChange={(e) => setBusca(e.target.value)} />
+        <input type="search" enterKeyHint="search" placeholder="buscar no texto…"
+          value={busca} onChange={(e) => setBusca(e.target.value)} />
         <select value={status} onChange={(e) => setStatus(e.target.value)} aria-label="filtrar status">
           <option value="">todos os status</option>
           <option value="visivel">visível</option>
@@ -56,12 +64,18 @@ export default function Feed({ plataforma, templates, admin }: { plataforma: Pla
           <option value="neutro">neutro</option>
         </select>
       </div>
-      {carregando && <p className="didatica">carregando…</p>}
-      {!carregando && itens.length === 0 && (
+      {estado === 'carregando' && <p className="didatica">carregando…</p>}
+      {estado === 'erro' && (
+        <div className="vazio">
+          <span className="emoji">📡</span>Não consegui carregar (conexão?).
+          <p style={{ marginTop: 12 }}><button className="btn" onClick={carregar}>Tentar de novo</button></p>
+        </div>
+      )}
+      {estado === 'ok' && itens.length === 0 && (
         <div className="vazio"><span className="emoji">🔍</span>Nenhum comentário com esses filtros.</div>
       )}
-      {itens.map((c) => (
-        <CommentCard key={c.id} c={c} templates={templates} admin={admin} onMudou={carregar} />
+      {estado === 'ok' && itens.map((c) => (
+        <CommentCard key={c.id} c={c} templates={templates} admin={admin} onPatch={patch} />
       ))}
     </div>
   )
