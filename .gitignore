@@ -1,5 +1,6 @@
 node_modules
 dist
+RELATORIO-HX.md
 .env
 .env.*
 *.local

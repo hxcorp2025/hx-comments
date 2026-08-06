@@ -1,6 +1,9 @@
 export type Plataforma = 'fb' | 'ig' | 'tiktok'
-export type Status = 'visivel' | 'revisao' | 'oculto_auto' | 'oculto_manual' | 'respondido' | 'liberado'
+export type Status =
+  | 'visivel' | 'revisao' | 'oculto_auto' | 'oculto_manual'
+  | 'oculto_plataforma' | 'respondido' | 'liberado' | 'removido_origem'
 export type Classe = 'golpe' | 'reclamacao' | 'duvida' | 'prova_social' | 'neutro'
+export type FilaStatus = 'pending' | 'feito' | 'erro'
 
 export interface Comment {
   id: number
@@ -17,6 +20,11 @@ export interface Comment {
   classe: Classe | null
   ad_ids: string[]
   permalink_url: string | null
+  // estado real da ação na plataforma (vem de mod_action_queue)
+  fila_status: FilaStatus | null
+  fila_acao: 'ocultar' | 'liberar' | 'responder' | null
+  fila_tentativas: number | null
+  fila_erro: string | null
 }
 
 export interface Regra {
@@ -24,6 +32,8 @@ export interface Regra {
   termo: string
   descricao: string | null
   acao: 'auto_ocultar' | 'marcar_revisao'
+  classe: Classe | null
+  severidade: number
   plataformas: string[]
   ativa: boolean
   criada_por: string
@@ -49,9 +59,12 @@ export interface LogRow {
   detalhe: string | null
 }
 
-export interface NegativoAnuncio {
-  ad_id: string
-  ad_name: string | null
+export interface NegativoPost {
+  plataforma: string
+  post_id: string
+  caption: string | null
+  permalink_url: string | null
+  ads: number
   gasto_7d: number
   comentarios_7d: number
   negativos_7d: number

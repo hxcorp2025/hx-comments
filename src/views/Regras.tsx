@@ -1,6 +1,6 @@
 import { useEffect, useState, useCallback } from 'react'
 import type { Regra } from '../lib/types'
-import { listRegras, regraPreview, regraUpsert, regraPromover, regraToggle } from '../lib/db'
+import { listRegras, regraPreview, regraUpsert, regraPromover, regraToggle, traduzErro } from '../lib/db'
 
 interface Preview { matches: number; total: number; pct: number; amostra: string[] }
 
@@ -10,10 +10,13 @@ export default function Regras() {
   const [descricao, setDescricao] = useState('')
   const [preview, setPreview] = useState<Preview | null>(null)
   const [erro, setErro] = useState('')
+  const [falhouCarregar, setFalhouCarregar] = useState('')
   const [ocupado, setOcupado] = useState(false)
 
   const carregar = useCallback(() => {
-    listRegras().then(setRegras).catch(console.error)
+    listRegras()
+      .then((r) => { setRegras(r); setFalhouCarregar('') })
+      .catch((e) => setFalhouCarregar(traduzErro(e?.message ?? '')))
   }, [])
   useEffect(carregar, [carregar])
 
@@ -43,13 +46,27 @@ export default function Regras() {
     }
   }
 
+  // sem o guard de `ocupado`, duplo toque promovia a regra duas vezes
   async function agir(fn: () => Promise<unknown>) {
+    if (ocupado) return
     setErro('')
-    try { await fn(); carregar() } catch (e) { setErro(e instanceof Error ? e.message : 'falhou') }
+    setOcupado(true)
+    try { await fn(); carregar() }
+    catch (e) { setErro(e instanceof Error ? e.message : 'falhou') }
+    finally { setOcupado(false) }
   }
 
   const podePromover = (r: Regra) =>
     r.acao === 'marcar_revisao' && Date.now() - new Date(r.editada_em).getTime() > 48 * 3600 * 1000
+
+  if (falhouCarregar) {
+    return (
+      <div className="vazio">
+        <span className="emoji">📡</span>{falhouCarregar}
+        <p style={{ marginTop: 12 }}><button className="btn" onClick={carregar}>Tentar de novo</button></p>
+      </div>
+    )
+  }
 
   return (
     <div>

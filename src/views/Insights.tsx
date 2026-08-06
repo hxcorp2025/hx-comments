@@ -1,61 +1,84 @@
-import { useEffect, useState } from 'react'
-import type { NegativoAnuncio } from '../lib/types'
-import { listInsights, negativosPorAnuncio, type InsightRow } from '../lib/db'
+import { useEffect, useState, useCallback } from 'react'
+import type { NegativoPost } from '../lib/types'
+import { listInsights, negativosPorPost, traduzErro, type InsightRow } from '../lib/db'
+
+type Estado = 'carregando' | 'ok' | 'erro'
 
 export default function Insights() {
   const [linhas, setLinhas] = useState<InsightRow[]>([])
-  const [anuncios, setAnuncios] = useState<NegativoAnuncio[]>([])
+  const [posts, setPosts] = useState<NegativoPost[]>([])
+  const [estado, setEstado] = useState<Estado>('carregando')
+  const [erroMsg, setErroMsg] = useState('')
 
-  useEffect(() => {
-    listInsights().then(setLinhas).catch(console.error)
-    negativosPorAnuncio().then(setAnuncios).catch(console.error)
+  const carregar = useCallback(() => {
+    setEstado('carregando')
+    Promise.all([listInsights(), negativosPorPost()])
+      .then(([l, p]) => { setLinhas(l); setPosts(p); setEstado('ok') })
+      .catch((e) => { setErroMsg(traduzErro(e?.message ?? '')); setEstado('erro') })
   }, [])
+  useEffect(carregar, [carregar])
 
-  const seteDias = linhas.filter((l) => Date.now() - new Date(l.dia_br).getTime() < 7 * 864e5)
-  const total = seteDias.reduce((s, l) => s + Number(l.comentarios), 0)
-  const sinalizados = seteDias
-    .filter((l) => ['revisao', 'oculto_auto', 'oculto_manual'].includes(l.status))
-    .reduce((s, l) => s + Number(l.comentarios), 0)
-  const ocultos = seteDias
-    .filter((l) => ['oculto_auto', 'oculto_manual'].includes(l.status))
-    .reduce((s, l) => s + Number(l.comentarios), 0)
+  if (estado === 'carregando') return <p className="didatica">carregando…</p>
+  if (estado === 'erro') {
+    return (
+      <div className="vazio">
+        <span className="emoji">📡</span>{erroMsg || 'Não consegui carregar os insights.'}
+        <p style={{ marginTop: 12 }}><button className="btn" onClick={carregar}>Tentar de novo</button></p>
+      </div>
+    )
+  }
+
+  // a janela de 7 dias BR já vem filtrada do servidor (era feita em JS com Date-UTC e perdia um dia)
+  const soma = (f: (l: InsightRow) => boolean) =>
+    linhas.filter(f).reduce((s, l) => s + Number(l.comentarios), 0)
+  const total = soma(() => true)
+  const sinalizados = soma((l) => ['revisao', 'oculto_auto', 'oculto_manual'].includes(l.status))
+  const ocultosNos = soma((l) => ['oculto_auto', 'oculto_manual'].includes(l.status))
+  const ocultosPlat = soma((l) => l.status === 'oculto_plataforma')
+  const duvidas = soma((l) => l.classe === 'duvida')
 
   return (
     <div>
       <p className="didatica">
-        Últimos 7 dias. "Sinalizado" = o motor achou algo (revisão ou oculto). O digest semanal
-        com as citações literais pro Lorenzo sai toda segunda 9h no WhatsApp.
+        Últimos 7 dias (fuso de Brasília). "Ocultos por nós" conta só a moderação da equipe;
+        o que a própria plataforma escondeu (filtro de spam da Meta) aparece separado.
       </p>
       <div className="grade-kpi">
         <div className="kpi"><div className="num">{total}</div><div className="rotulo">comentários (7d)</div></div>
         <div className="kpi"><div className="num">{sinalizados}</div><div className="rotulo">sinalizados</div></div>
-        <div className="kpi"><div className="num">{ocultos}</div><div className="rotulo">ocultos</div></div>
+        <div className="kpi"><div className="num">{ocultosNos}</div><div className="rotulo">ocultos por nós</div></div>
+        <div className="kpi"><div className="num">{ocultosPlat}</div><div className="rotulo">ocultos pela plataforma</div></div>
+        <div className="kpi"><div className="num">{duvidas}</div><div className="rotulo">dúvidas de lead</div></div>
       </div>
 
-      <h3 style={{ margin: '14px 0 4px' }}>Negativos por anúncio × gasto (7d)</h3>
+      <h3 style={{ margin: '14px 0 4px' }}>Negativos por publicação × gasto (7d)</h3>
       <p className="didatica">
-        Pra que serve: negativo SUBINDO num criativo escalado = fadiga/qualidade caindo antes do CTR mostrar.
-        Gasto alto + % negativo alto = olhar o criativo com o Patrick.
+        Agrupado por PUBLICAÇÃO, não por anúncio: vários anúncios usam o mesmo post, então o comentário
+        pertence ao post. O gasto é a soma dos anúncios daquele post. Negativo subindo em publicação
+        escalada = qualidade caindo antes do CTR mostrar.
       </p>
       <div className="scroll-x">
         <table className="lista">
           <thead>
-            <tr><th>Anúncio</th><th>Gasto 7d</th><th>Coments</th><th>Negativos</th><th>%</th><th>Ocultos</th></tr>
+            <tr><th>Publicação</th><th>Anúncios</th><th>Gasto 7d</th><th>Coments</th><th>Negativos</th><th>%</th></tr>
           </thead>
           <tbody>
-            {anuncios.map((a) => (
-              <tr key={a.ad_id}>
-                <td>{a.ad_name ?? a.ad_id}</td>
-                <td>R$ {Number(a.gasto_7d).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</td>
-                <td>{a.comentarios_7d}</td>
-                <td>{a.negativos_7d}</td>
-                <td style={{ color: a.pct_negativo > 15 ? 'var(--red)' : 'inherit' }}>{a.pct_negativo}%</td>
-                <td>{a.ocultos_7d}</td>
+            {posts.map((p) => (
+              <tr key={`${p.plataforma}-${p.post_id}`}>
+                <td>
+                  {p.permalink_url && /^https:\/\//i.test(p.permalink_url)
+                    ? <a href={p.permalink_url} target="_blank" rel="noreferrer noopener">{p.caption ?? p.post_id}</a>
+                    : (p.caption ?? p.post_id)}
+                  <div style={{ color: 'var(--muted)', fontSize: 12 }}>{p.plataforma}</div>
+                </td>
+                <td>{p.ads}</td>
+                <td>R$ {Number(p.gasto_7d).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</td>
+                <td>{p.comentarios_7d}</td>
+                <td>{p.negativos_7d}</td>
+                <td style={{ color: p.pct_negativo > 15 ? 'var(--red)' : 'inherit' }}>{p.pct_negativo}%</td>
               </tr>
             ))}
-            {anuncios.length === 0 && (
-              <tr><td colSpan={6} style={{ color: 'var(--muted)' }}>sem dados ainda</td></tr>
-            )}
+            {posts.length === 0 && <tr><td colSpan={6} style={{ color: 'var(--muted)' }}>sem dados ainda</td></tr>}
           </tbody>
         </table>
       </div>

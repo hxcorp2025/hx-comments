@@ -2,9 +2,10 @@ import { useEffect, useState, useCallback } from 'react'
 import type { Session } from '@supabase/supabase-js'
 import { Inbox, Music2, Facebook, Instagram, ShieldBan, BarChart3, ScrollText, LogOut } from 'lucide-react'
 import { sb } from './lib/supabase'
-import { listTemplates } from './lib/db'
+import { listTemplates, contarFila } from './lib/db'
 import type { Template } from './lib/types'
 import Login from './components/Login'
+import AvisoVersao from './components/AvisoVersao'
 import Fila from './views/Fila'
 import Feed from './views/Feed'
 import Regras from './views/Regras'
@@ -12,6 +13,7 @@ import Insights from './views/Insights'
 import LogView from './views/LogView'
 
 type Aba = 'fila' | 'tiktok' | 'fb' | 'ig' | 'regras' | 'insights' | 'log'
+type Acesso = 'checando' | 'liberado' | 'negado' | 'offline'
 
 const ABAS: { id: Aba; rotulo: string; Icone: typeof Inbox }[] = [
   { id: 'fila', rotulo: 'Fila', Icone: Inbox },
@@ -28,45 +30,62 @@ export default function App() {
   const [pronto, setPronto] = useState(false)
   const [aba, setAba] = useState<Aba>('fila')
   const [templates, setTemplates] = useState<Template[]>([])
-  const [negado, setNegado] = useState(false)
+  const [acesso, setAcesso] = useState<Acesso>('checando')
   const [papel, setPapel] = useState('operador')
   const [filaN, setFilaN] = useState<number | null>(null)
 
   useEffect(() => {
-    sb.auth.getSession().then(({ data }) => { setSession(data.session); setPronto(true) })
+    sb.auth.getSession()
+      .then(({ data }) => setSession(data.session))
+      .catch(() => setSession(null))
+      .finally(() => setPronto(true))
     const { data: sub } = sb.auth.onAuthStateChange((_e, s) => setSession(s))
     return () => sub.subscription.unsubscribe()
   }, [])
 
-  useEffect(() => {
+  const checarAcesso = useCallback(() => {
     if (!session) return
-    // allowlist + papel vêm do banco (a RLS devolve vazio pra quem não é operador)
-    sb.from('painel_operadores').select('email, papel').eq('email', session.user.email).then(({ data }) => {
-      if (!data || data.length === 0) setNegado(true)
-      else {
-        setNegado(false)
+    setAcesso('checando')
+    sb.from('painel_operadores').select('email, papel').eq('email', session.user.email)
+      .then(({ data, error }) => {
+        // erro de rede/RLS NÃO é "você não é operador" — antes o painel acusava o inocente
+        if (error) { setAcesso('offline'); return }
+        if (!data || data.length === 0) { setAcesso('negado'); return }
+        setAcesso('liberado')
         setPapel(data[0].papel)
-        listTemplates().then(setTemplates).catch(console.error)
-        sb.from('ad_comments').select('id', { count: 'exact', head: true }).eq('status', 'revisao')
-          .then(({ count }) => setFilaN(count ?? 0))
-      }
-    })
+        listTemplates().then(setTemplates).catch(() => setTemplates([]))
+        contarFila().then(setFilaN).catch(() => {})
+      })
   }, [session])
+  useEffect(checarAcesso, [checarAcesso])
 
   const onContagem = useCallback((n: number) => setFilaN(n), [])
 
-  if (!pronto) return null
+  if (!pronto) return <p className="didatica" style={{ padding: 24 }}>carregando…</p>
   if (!session) return <Login />
 
-  if (negado) {
+  if (acesso === 'checando') return <p className="didatica" style={{ padding: 24 }}>verificando acesso…</p>
+
+  if (acesso === 'offline') {
+    return (
+      <div className="vazio" style={{ paddingTop: '20vh' }}>
+        <span className="emoji">📡</span>
+        Não consegui falar com o servidor (conexão?).
+        <p style={{ marginTop: 16, display: 'flex', gap: 8, justifyContent: 'center' }}>
+          <button className="btn primario" onClick={checarAcesso}>Tentar de novo</button>
+          <button className="btn" onClick={() => sb.auth.signOut()}>Sair</button>
+        </p>
+      </div>
+    )
+  }
+
+  if (acesso === 'negado') {
     return (
       <div className="vazio" style={{ paddingTop: '20vh' }}>
         <span className="emoji">🚫</span>
         Sua conta ({session.user.email}) não está na lista de operadores.
         <br />Fala com o Matheus pra ser liberado.
-        <p style={{ marginTop: 16 }}>
-          <button className="btn" onClick={() => sb.auth.signOut()}>Sair</button>
-        </p>
+        <p style={{ marginTop: 16 }}><button className="btn" onClick={() => sb.auth.signOut()}>Sair</button></p>
       </div>
     )
   }
@@ -75,6 +94,7 @@ export default function App() {
 
   return (
     <div className="app">
+      <AvisoVersao />
       <header className="topo">
         <h1>🗣️ Central de Comentários</h1>
         <span className="quem">

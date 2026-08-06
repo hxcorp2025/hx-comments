@@ -71,6 +71,8 @@ a { color: var(--blue); }
 .pill.tiktok { background: #223; color: #aab; }
 .pill.revisao { background: #4a3a17; color: #f0cd7a; }
 .pill.oculto_auto, .pill.oculto_manual { background: #4a1f1c; color: #f0a49e; }
+.pill.oculto_plataforma { background: #33313a; color: #c3bcd0; }
+.pill.removido_origem { background: #2b2b2b; color: #9a9a9a; }
 .pill.respondido { background: #1c3a4a; color: #9ed4f0; }
 .pill.liberado { background: #1d3d28; color: #a3e0b4; }
 .pill.visivel { background: #24303a; color: #a8c0d0; }
@@ -94,6 +96,16 @@ a { color: var(--blue); }
 .alvo-toque input[type='checkbox'] { width: 18px; height: 18px; }
 
 .feito { color: var(--green); font-size: 13.5px; margin-top: 8px; }
+.aguardando { color: var(--orange); font-size: 13px; margin: 2px 0 6px; }
+.erro-fila { color: var(--red); font-size: 13px; margin: 2px 0 6px; line-height: 1.4; }
+.card.falhou { border-color: var(--red); }
+.acao-erro { color: var(--red); font-weight: 600; }
+
+.aviso-versao {
+  display: block; width: 100%; margin-bottom: 10px;
+  background: var(--accent); color: #04211c; font-weight: 700;
+  padding: 12px; min-height: 44px; border-radius: var(--radius);
+}
 
 .vazio { text-align: center; color: var(--muted); padding: 48px 16px; }
 .vazio .emoji { font-size: 40px; display: block; margin-bottom: 10px; }
@@ -117,7 +129,7 @@ table.lista td { padding: 8px; border-bottom: 1px solid var(--line); vertical-al
 .kpi .rotulo { color: var(--muted); font-size: 12.5px; }
 
 .bulkbar {
-  position: fixed; bottom: 70px; left: 12px; right: 12px; z-index: 25;
+  position: fixed; bottom: calc(64px + env(safe-area-inset-bottom)); left: 12px; right: 12px; z-index: 25;
   background: var(--panel-2); border: 1px solid var(--accent); border-radius: var(--radius);
   padding: 10px 14px; display: flex; align-items: center; justify-content: space-between; gap: 10px;
 }
