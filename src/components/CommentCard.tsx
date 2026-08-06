@@ -79,18 +79,18 @@ export default function CommentCard({ c, templates, admin, selecionado, onSeleci
       <div className="acoes">
         {!oculto ? (
           <button className="btn perigo" disabled={ocupado}
-            onClick={() => agir(() => ocultar(c.id), { status: 'oculto_manual', is_hidden: true }, 'Ocultado — dá pra liberar de volta aqui mesmo')}>
+            onClick={() => agir(() => ocultar(c.id), { status: 'oculto_manual', is_hidden: true }, 'Registrado — some da plataforma em até 1 min')}>
             <EyeOff size={15} style={{ verticalAlign: '-2px' }} /> Ocultar
           </button>
         ) : (
           <button className="btn ok" disabled={ocupado}
-            onClick={() => agir(() => liberar(c.id), { status: 'liberado', is_hidden: false }, 'Liberado — o motor não mexe mais nele')}>
+            onClick={() => agir(() => liberar(c.id), { status: 'liberado', is_hidden: false }, 'Registrado — volta pra plataforma em até 1 min; o motor não mexe mais nele')}>
             <Eye size={15} style={{ verticalAlign: '-2px' }} /> Liberar
           </button>
         )}
         {c.status === 'revisao' && (
           <button className="btn ok" disabled={ocupado}
-            onClick={() => agir(() => liberar(c.id), { status: 'liberado', is_hidden: false }, 'Liberado — o motor não mexe mais nele')}>
+            onClick={() => agir(() => liberar(c.id), { status: 'liberado', is_hidden: false }, 'Registrado — o motor não mexe mais nele')}>
             Está ok, liberar
           </button>
         )}
