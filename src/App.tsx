@@ -1,6 +1,6 @@
 import { useEffect, useState, useCallback } from 'react'
 import type { Session } from '@supabase/supabase-js'
-import { Inbox, Music2, Facebook, Instagram, ShieldBan, BarChart3, ScrollText, LogOut } from 'lucide-react'
+import { Inbox, Music2, Facebook, Instagram, MessageCircle, ShieldBan, BarChart3, ScrollText, LogOut } from 'lucide-react'
 import { sb } from './lib/supabase'
 import { listTemplates, contarFila } from './lib/db'
 import type { Template } from './lib/types'
@@ -8,15 +8,17 @@ import Login from './components/Login'
 import AvisoVersao from './components/AvisoVersao'
 import Fila from './views/Fila'
 import Feed from './views/Feed'
+import Whats from './views/Whats'
 import Regras from './views/Regras'
 import Insights from './views/Insights'
 import LogView from './views/LogView'
 
-type Aba = 'fila' | 'tiktok' | 'fb' | 'ig' | 'regras' | 'insights' | 'log'
+type Aba = 'fila' | 'whats' | 'tiktok' | 'fb' | 'ig' | 'regras' | 'insights' | 'log'
 type Acesso = 'checando' | 'liberado' | 'negado' | 'offline'
 
 const ABAS: { id: Aba; rotulo: string; Icone: typeof Inbox }[] = [
   { id: 'fila', rotulo: 'Fila', Icone: Inbox },
+  { id: 'whats', rotulo: 'WhatsApp', Icone: MessageCircle },
   { id: 'tiktok', rotulo: 'TikTok', Icone: Music2 },
   { id: 'fb', rotulo: 'Facebook', Icone: Facebook },
   { id: 'ig', rotulo: 'Instagram', Icone: Instagram },
@@ -33,6 +35,7 @@ export default function App() {
   const [acesso, setAcesso] = useState<Acesso>('checando')
   const [papel, setPapel] = useState('operador')
   const [filaN, setFilaN] = useState<number | null>(null)
+  const [waN, setWaN] = useState<number | null>(null)
 
   useEffect(() => {
     sb.auth.getSession()
@@ -60,6 +63,7 @@ export default function App() {
   useEffect(checarAcesso, [checarAcesso])
 
   const onContagem = useCallback((n: number) => setFilaN(n), [])
+  const onContagemWa = useCallback((n: number) => setWaN(n), [])
 
   if (!pronto) return <p className="didatica" style={{ padding: 24 }}>carregando…</p>
   if (!session) return <Login />
@@ -110,12 +114,15 @@ export default function App() {
           <button key={id} className={aba === id ? 'on' : ''} onClick={() => setAba(id)}
             aria-current={aba === id ? 'page' : undefined}>
             <Icone size={19} />
-            {id === 'fila' && filaN !== null && filaN > 0 ? `${rotulo} · ${filaN}` : rotulo}
+            {id === 'fila' && filaN !== null && filaN > 0 ? `${rotulo} · ${filaN}`
+              : id === 'whats' && waN !== null && waN > 0 ? `${rotulo} · ${waN}`
+              : rotulo}
           </button>
         ))}
       </nav>
 
       {aba === 'fila' && <Fila templates={templates} admin={admin} onContagem={onContagem} />}
+      {aba === 'whats' && <Whats admin={admin} onContagem={onContagemWa} />}
       {aba === 'tiktok' && <Feed plataforma="tiktok" templates={templates} admin={admin} />}
       {aba === 'fb' && <Feed plataforma="fb" templates={templates} admin={admin} />}
       {aba === 'ig' && <Feed plataforma="ig" templates={templates} admin={admin} />}
