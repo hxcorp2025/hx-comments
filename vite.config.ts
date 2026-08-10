@@ -8,7 +8,8 @@ import { resolve } from 'node:path'
 const BUILD = (process.env.GITHUB_SHA ?? 'dev').slice(0, 7)
 
 export default defineConfig({
-  base: '/hx-comments/',
+  // custom domain (central.hx-corp.com) serve na RAIZ — base de subpath quebraria os assets
+  base: '/',
   define: { __BUILD__: JSON.stringify(BUILD) },
   plugins: [
     react(),
