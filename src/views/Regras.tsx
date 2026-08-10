@@ -1,6 +1,6 @@
 import { useEffect, useState, useCallback } from 'react'
 import type { Regra } from '../lib/types'
-import { listRegras, regraPreview, regraUpsert, regraPromover, regraToggle, regraRespostas, traduzErro } from '../lib/db'
+import { listRegras, regraPreview, regraUpsert, regraPromover, regraToggle, regraRespostas, regraDm, traduzErro } from '../lib/db'
 
 interface Preview { matches: number; total: number; pct: number; amostra: string[] }
 
@@ -47,6 +47,42 @@ export default function Regras() {
     const versoes = draft.map((d) => d.trim()).filter((d) => d.length >= 2)
     if (versoes.length === 0) { setErro('escreva pelo menos 1 resposta (mín. 2 caracteres)'); return }
     await agir(async () => { await regraRespostas(id, versoes); fecharEditorRespostas(id) })
+  }
+
+  const [editandoDm, setEditandoDm] = useState<number | null>(null)
+  const [draftDm, setDraftDm] = useState<string[]>(['', '', ''])
+
+  function abrirEditorDm(r: Regra) {
+    setErro('')
+    setEditandoDm(r.id)
+    const salvo = localStorage.getItem('hx_rascunho_dm_' + r.id)
+    if (salvo) {
+      try {
+        const arr = JSON.parse(salvo) as string[]
+        setDraftDm([arr[0] ?? '', arr[1] ?? '', arr[2] ?? ''])
+        return
+      } catch { /* rascunho corrompido: cai pro valor salvo */ }
+    }
+    const v = r.dm_respostas ?? []
+    setDraftDm([v[0] ?? '', v[1] ?? '', v[2] ?? ''])
+  }
+
+  useEffect(() => {
+    if (editandoDm === null) return
+    const k = 'hx_rascunho_dm_' + editandoDm
+    if (draftDm.some((d) => d.trim())) localStorage.setItem(k, JSON.stringify(draftDm))
+    else localStorage.removeItem(k)
+  }, [editandoDm, draftDm])
+
+  function fecharEditorDm(id: number) {
+    localStorage.removeItem('hx_rascunho_dm_' + id)
+    setEditandoDm(null)
+  }
+
+  async function salvarDm(id: number) {
+    const versoes = draftDm.map((d) => d.trim()).filter((d) => d.length >= 2)
+    if (versoes.length === 0) { setErro('escreva pelo menos 1 DM (mín. 2 caracteres)'); return }
+    await agir(async () => { await regraDm(id, versoes); fecharEditorDm(id) })
   }
 
   const carregar = useCallback(() => {
@@ -153,6 +189,9 @@ export default function Regras() {
             {r.respostas_auto && (
               <span className="pill respondido">responde sozinha ({r.respostas_auto.length} versõe{r.respostas_auto.length > 1 ? 's' : ''})</span>
             )}
+            {r.dm_respostas && (
+              <span className="pill ig">DM no IG ({r.dm_respostas.length})</span>
+            )}
             {!r.ativa && <span className="pill neutro">desligada</span>}
             <span>por {r.criada_por}</span>
           </div>
@@ -183,6 +222,15 @@ export default function Regras() {
                 </button>
               </>
             )}
+            {r.respostas_auto && !r.dm_respostas && editandoDm !== r.id && (
+              <button className="btn" onClick={() => abrirEditorDm(r)}>Criar DM (IG)</button>
+            )}
+            {r.dm_respostas && editandoDm !== r.id && (
+              <>
+                <button className="btn" onClick={() => abrirEditorDm(r)}>Editar DM</button>
+                <button className="btn" onClick={() => agir(() => regraDm(r.id, null))}>Parar DM</button>
+              </>
+            )}
           </div>
 
           {editandoRespostas === r.id && (
@@ -208,6 +256,32 @@ export default function Regras() {
                 </button>
               </div>
               {erro && editandoRespostas === r.id && <p className="erro">{erro}</p>}
+            </div>
+          )}
+
+          {editandoDm === r.id && (
+            <div style={{ marginTop: 10, display: 'flex', flexDirection: 'column', gap: 8 }}>
+              <div className="didatica">
+                <b>DM automático (só Instagram):</b> além da resposta pública, a Central manda
+                <b> uma</b> destas versões no direct de quem comentou (sorteada). Se a pessoa
+                responder, a conversa segue no <b>Direct da página</b> e o time responde por lá.
+                Máx. 1 DM por pessoa por dia; escrever é do admin; qualquer operador pode "Parar DM".
+              </div>
+              {[0, 1, 2].map((i) => (
+                <textarea key={i} rows={2} maxLength={500}
+                  placeholder={`DM versão ${i + 1}${i > 0 ? ' (opcional)' : ''}`}
+                  value={draftDm[i]}
+                  onChange={(e) => setDraftDm((d) => d.map((v, j) => (j === i ? e.target.value : v)))} />
+              ))}
+              <div className="acoes">
+                <button className="btn primario" disabled={ocupado} onClick={() => salvarDm(r.id)}>
+                  Salvar DM
+                </button>
+                <button className="btn" disabled={ocupado} onClick={() => fecharEditorDm(r.id)}>
+                  Cancelar
+                </button>
+              </div>
+              {erro && editandoDm === r.id && <p className="erro">{erro}</p>}
             </div>
           )}
         </div>

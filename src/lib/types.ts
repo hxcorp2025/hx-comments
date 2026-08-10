@@ -41,6 +41,7 @@ export interface Regra {
   editada_em: string
   promovida_em: string | null
   respostas_auto: string[] | null
+  dm_respostas: string[] | null
 }
 
 export interface Template {
