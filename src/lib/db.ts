@@ -146,6 +146,8 @@ export const regraUpsert = (id: number | null, termo: string, descricao: string,
   rpc('mod_regra_upsert', { p_id: id, p_termo: termo, p_descricao: descricao, p_plataformas: plataformas })
 export const regraPromover = (id: number) => rpc('mod_regra_promover', { p_id: id })
 export const regraToggle = (id: number, ativa: boolean) => rpc('mod_regra_toggle', { p_id: id, p_ativa: ativa })
+export const regraRespostas = (id: number, respostas: string[] | null) =>
+  rpc('mod_regra_respostas', { p_id: id, p_respostas: respostas })
 
 async function rpc(fn: string, args: Record<string, unknown>) {
   const { data, error } = await sb.rpc(fn, args)

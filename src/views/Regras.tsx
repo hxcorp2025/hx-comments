@@ -1,6 +1,6 @@
 import { useEffect, useState, useCallback } from 'react'
 import type { Regra } from '../lib/types'
-import { listRegras, regraPreview, regraUpsert, regraPromover, regraToggle, traduzErro } from '../lib/db'
+import { listRegras, regraPreview, regraUpsert, regraPromover, regraToggle, regraRespostas, traduzErro } from '../lib/db'
 
 interface Preview { matches: number; total: number; pct: number; amostra: string[] }
 
@@ -12,6 +12,21 @@ export default function Regras() {
   const [erro, setErro] = useState('')
   const [falhouCarregar, setFalhouCarregar] = useState('')
   const [ocupado, setOcupado] = useState(false)
+  const [editandoRespostas, setEditandoRespostas] = useState<number | null>(null)
+  const [draft, setDraft] = useState<string[]>(['', '', ''])
+
+  function abrirEditorRespostas(r: Regra) {
+    setErro('')
+    setEditandoRespostas(r.id)
+    const v = r.respostas_auto ?? []
+    setDraft([v[0] ?? '', v[1] ?? '', v[2] ?? ''])
+  }
+
+  async function salvarRespostas(id: number) {
+    const versoes = draft.map((d) => d.trim()).filter((d) => d.length >= 2)
+    if (versoes.length === 0) { setErro('escreva pelo menos 1 resposta (mín. 2 caracteres)'); return }
+    await agir(async () => { await regraRespostas(id, versoes); setEditandoRespostas(null) })
+  }
 
   const carregar = useCallback(() => {
     listRegras()
@@ -105,6 +120,9 @@ export default function Regras() {
             <span className={`pill ${r.acao === 'auto_ocultar' ? 'golpe' : 'revisao'}`}>
               {r.acao === 'auto_ocultar' ? 'oculta sozinha' : 'marca pra revisão'}
             </span>
+            {r.respostas_auto && (
+              <span className="pill respondido">responde sozinha ({r.respostas_auto.length} versõe{r.respostas_auto.length > 1 ? 's' : ''})</span>
+            )}
             {!r.ativa && <span className="pill neutro">desligada</span>}
             <span>por {r.criada_por}</span>
           </div>
@@ -115,13 +133,53 @@ export default function Regras() {
               {r.ativa ? 'Desligar' : 'Ligar'}
             </button>
             {r.acao === 'marcar_revisao' && (
-              <button className="btn perigo" disabled={!podePromover(r)}
-                title={podePromover(r) ? '' : 'aguarde 48h de observação'}
+              <button className="btn perigo" disabled={!podePromover(r) || !!r.respostas_auto}
+                title={r.respostas_auto ? 'essa regra responde — pare de responder antes de ocultar'
+                       : podePromover(r) ? '' : 'aguarde 48h de observação'}
                 onClick={() => agir(() => regraPromover(r.id))}>
                 Promover a auto-ocultar
               </button>
             )}
+            {r.acao === 'marcar_revisao' && !r.respostas_auto && editandoRespostas !== r.id && (
+              <button className="btn" onClick={() => abrirEditorRespostas(r)}>
+                Criar resposta automática
+              </button>
+            )}
+            {r.respostas_auto && editandoRespostas !== r.id && (
+              <>
+                <button className="btn" onClick={() => abrirEditorRespostas(r)}>Editar respostas</button>
+                <button className="btn" onClick={() => agir(() => regraRespostas(r.id, null))}>
+                  Parar de responder
+                </button>
+              </>
+            )}
           </div>
+
+          {editandoRespostas === r.id && (
+            <div style={{ marginTop: 10, display: 'flex', flexDirection: 'column', gap: 8 }}>
+              <div className="didatica">
+                <b>Resposta automática:</b> quando um comentário bater nessa regra, a Central publica
+                <b> uma</b> destas versões (sorteada) como a página — e o comentário sai da fila como
+                "respondido". Até 3 versões pra não parecer robô; máx. 500 caracteres cada.
+                Escrever/editar é do admin; <b>qualquer operador</b> pode "Parar de responder".
+              </div>
+              {[0, 1, 2].map((i) => (
+                <textarea key={i} rows={2} maxLength={500}
+                  placeholder={`versão ${i + 1}${i > 0 ? ' (opcional)' : ''}`}
+                  value={draft[i]}
+                  onChange={(e) => setDraft((d) => d.map((v, j) => (j === i ? e.target.value : v)))} />
+              ))}
+              <div className="acoes">
+                <button className="btn primario" disabled={ocupado} onClick={() => salvarRespostas(r.id)}>
+                  Salvar respostas
+                </button>
+                <button className="btn" disabled={ocupado} onClick={() => setEditandoRespostas(null)}>
+                  Cancelar
+                </button>
+              </div>
+              {erro && editandoRespostas === r.id && <p className="erro">{erro}</p>}
+            </div>
+          )}
         </div>
       ))}
     </div>

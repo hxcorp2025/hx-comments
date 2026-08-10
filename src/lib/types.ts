@@ -40,6 +40,7 @@ export interface Regra {
   criada_em: string
   editada_em: string
   promovida_em: string | null
+  respostas_auto: string[] | null
 }
 
 export interface Template {
