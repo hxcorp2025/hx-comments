@@ -6,8 +6,8 @@ interface Preview { matches: number; total: number; pct: number; amostra: string
 
 export default function Regras() {
   const [regras, setRegras] = useState<Regra[]>([])
-  const [termo, setTermo] = useState('')
-  const [descricao, setDescricao] = useState('')
+  const [termo, setTermo] = useState(() => localStorage.getItem('hx_rascunho_regra_termo') ?? '')
+  const [descricao, setDescricao] = useState(() => localStorage.getItem('hx_rascunho_regra_desc') ?? '')
   const [preview, setPreview] = useState<Preview | null>(null)
   const [erro, setErro] = useState('')
   const [falhouCarregar, setFalhouCarregar] = useState('')
@@ -18,14 +18,35 @@ export default function Regras() {
   function abrirEditorRespostas(r: Regra) {
     setErro('')
     setEditandoRespostas(r.id)
+    // rascunho local vence: recuperação de texto perdido por reload/desmontagem
+    const salvo = localStorage.getItem('hx_rascunho_resp_' + r.id)
+    if (salvo) {
+      try {
+        const arr = JSON.parse(salvo) as string[]
+        setDraft([arr[0] ?? '', arr[1] ?? '', arr[2] ?? ''])
+        return
+      } catch { /* rascunho corrompido: cai pro valor salvo da regra */ }
+    }
     const v = r.respostas_auto ?? []
     setDraft([v[0] ?? '', v[1] ?? '', v[2] ?? ''])
+  }
+
+  useEffect(() => {
+    if (editandoRespostas === null) return
+    const k = 'hx_rascunho_resp_' + editandoRespostas
+    if (draft.some((d) => d.trim())) localStorage.setItem(k, JSON.stringify(draft))
+    else localStorage.removeItem(k)
+  }, [editandoRespostas, draft])
+
+  function fecharEditorRespostas(id: number) {
+    localStorage.removeItem('hx_rascunho_resp_' + id)
+    setEditandoRespostas(null)
   }
 
   async function salvarRespostas(id: number) {
     const versoes = draft.map((d) => d.trim()).filter((d) => d.length >= 2)
     if (versoes.length === 0) { setErro('escreva pelo menos 1 resposta (mín. 2 caracteres)'); return }
-    await agir(async () => { await regraRespostas(id, versoes); setEditandoRespostas(null) })
+    await agir(async () => { await regraRespostas(id, versoes); fecharEditorRespostas(id) })
   }
 
   const carregar = useCallback(() => {
@@ -34,6 +55,15 @@ export default function Regras() {
       .catch((e) => setFalhouCarregar(traduzErro(e?.message ?? '')))
   }, [])
   useEffect(carregar, [carregar])
+
+  useEffect(() => {
+    if (termo) localStorage.setItem('hx_rascunho_regra_termo', termo)
+    else localStorage.removeItem('hx_rascunho_regra_termo')
+  }, [termo])
+  useEffect(() => {
+    if (descricao) localStorage.setItem('hx_rascunho_regra_desc', descricao)
+    else localStorage.removeItem('hx_rascunho_regra_desc')
+  }, [descricao])
 
   async function verPreview() {
     setErro('')
@@ -173,7 +203,7 @@ export default function Regras() {
                 <button className="btn primario" disabled={ocupado} onClick={() => salvarRespostas(r.id)}>
                   Salvar respostas
                 </button>
-                <button className="btn" disabled={ocupado} onClick={() => setEditandoRespostas(null)}>
+                <button className="btn" disabled={ocupado} onClick={() => fecharEditorRespostas(r.id)}>
                   Cancelar
                 </button>
               </div>

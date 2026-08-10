@@ -59,11 +59,19 @@ export default function Whats({ admin, onContagem }: { admin: boolean; onContage
     return () => clearInterval(t)
   }, [estado, aberta])
 
+  useEffect(() => {
+    if (!aberta) return
+    const k = 'hx_rascunho_wa_' + aberta
+    if (texto.trim()) sessionStorage.setItem(k, texto)
+    else sessionStorage.removeItem(k)
+  }, [aberta, texto])
+
   function abrir(c: WaConversa) {
     const k = chave(c)
     if (aberta === k) { setAberta(null); return }
     setAberta(k)
-    setTexto('')
+    // rascunho por conversa: texto digitado sobrevive a reload/troca de conversa
+    setTexto(sessionStorage.getItem('hx_rascunho_wa_' + k) ?? '')
     setThread([])
     setThreadErro('')
     waThread(c.phone_id, c.fone_key)
@@ -77,6 +85,7 @@ export default function Whats({ admin, onContagem }: { admin: boolean; onContage
     setAviso('')
     try {
       await waResponder(c.phone_id, c.wa_id, texto.trim())
+      sessionStorage.removeItem('hx_rascunho_wa_' + chave(c))
       setTexto('')
       setAviso('Na fila de envio — sai em até 1 min. A conversa some da fila quando o envio confirmar.')
       // otimismo: some da fila local; o refresh de 30s corrige se o worker falhar

@@ -42,13 +42,17 @@ export default function App() {
       .then(({ data }) => setSession(data.session))
       .catch(() => setSession(null))
       .finally(() => setPronto(true))
-    const { data: sub } = sb.auth.onAuthStateChange((_e, s) => setSession(s))
+    // refresh de token ao voltar pra aba trocava o objeto session → re-check → app desmontava
+    // e comia texto digitado; só troca a session se o USUÁRIO mudou
+    const { data: sub } = sb.auth.onAuthStateChange((_e, s) =>
+      setSession((prev) => (prev?.user?.id === s?.user?.id ? prev : s)))
     return () => sub.subscription.unsubscribe()
   }, [])
 
   const checarAcesso = useCallback(() => {
     if (!session) return
-    setAcesso('checando')
+    // quem já está dentro re-valida em silêncio (a tela "verificando…" desmontava as views)
+    setAcesso((prev) => (prev === 'liberado' ? prev : 'checando'))
     sb.from('painel_operadores').select('email, papel').eq('email', session.user.email)
       .then(({ data, error }) => {
         // erro de rede/RLS NÃO é "você não é operador" — antes o painel acusava o inocente
