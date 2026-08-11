@@ -92,15 +92,16 @@ export default function Whats({ admin, onContagem }: { admin: boolean; onContage
   const [aviso, setAviso] = useState('')
   const [verRegras, setVerRegras] = useState(false)
   const [numFiltro, setNumFiltro] = useState<'todos' | '0646' | '0640'>('todos')
+  const [verTodas, setVerTodas] = useState(false)
   const [aCaminho, setACaminho] = useState<WaEnviando[]>([])
   const [falhas, setFalhas] = useState<WaFalha[]>([])
 
   const carregar = useCallback(() => {
     setEstado('carregando')
-    Promise.all([waFila(), waEnviando(), waFalhas()])
+    Promise.all([waFila(verTodas), waEnviando(), waFalhas()])
       .then(([f, ec, fl]) => { setConversas(f); setACaminho(ec); setFalhas(fl); setEstado('ok') })
       .catch((e) => { setErroMsg(traduzErro(e?.message ?? '')); setEstado('erro') })
-  }, [])
+  }, [verTodas])
   useEffect(carregar, [carregar])
 
   // badge = só o que precisa de AÇÃO: janela aberta, fora do controle, com msg pendente
@@ -113,12 +114,12 @@ export default function Whats({ admin, onContagem }: { admin: boolean; onContage
   useEffect(() => {
     if (estado !== 'ok' || aberta !== null) return
     const t = setInterval(() => {
-      Promise.all([waFila(), waEnviando(), waFalhas()])
+      Promise.all([waFila(verTodas), waEnviando(), waFalhas()])
         .then(([f, ec, fl]) => { setConversas(f); setACaminho(ec); setFalhas(fl) })
         .catch(() => {})
     }, 30000)
     return () => clearInterval(t)
-  }, [estado, aberta])
+  }, [estado, aberta, verTodas])
 
   useEffect(() => {
     if (!aberta) return
@@ -212,6 +213,13 @@ export default function Whats({ admin, onContagem }: { admin: boolean; onContage
             {n === 'todos' ? 'Todos' : n === '0646' ? '0646 atendimento' : '0640 disparo'}
           </button>
         ))}
+        {!verRegras && (
+          <button className={`btn ${verTodas ? 'primario' : ''}`}
+            title="Inclui conversas já respondidas (últimas 72h)"
+            onClick={() => setVerTodas(!verTodas)}>
+            {verTodas ? '👁 Mostrando todas (72h)' : '👁 Ver respondidas também'}
+          </button>
+        )}
       </p>
 
       {!verRegras && falhas.length > 0 && (
@@ -254,6 +262,7 @@ export default function Whats({ admin, onContagem }: { admin: boolean; onContage
                   <b>{c.cliente}</b>{' '}
                   <span className="pill">{c.numero_nosso}</span>{' '}
                   {c.pendentes > 1 && <span className="pill">{c.pendentes} msgs</span>}{' '}
+                  {c.pendentes === 0 && <span className="pill" style={{ background: '#1f3d2b', color: '#7ee2a8' }}>✓ respondida</span>}{' '}
                   {c.grupo_controle && <span className="pill" style={{ background: '#5b2333', color: '#ffb1c1' }}>controle: NÃO responder</span>}
                 </span>
                 <span style={{ color: corJanela(c), fontVariantNumeric: 'tabular-nums' }}>

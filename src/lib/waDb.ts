@@ -81,7 +81,8 @@ export interface WaFalha {
   tentativas: number
 }
 
-export const waFila = () => rpc<WaConversa[]>('mod_wa_fila')
+// padrão: só conversas esperando resposta · todas=true: tudo das últimas 72h (já respondidas incluídas)
+export const waFila = (todas = false) => rpc<WaConversa[]>('mod_wa_fila', { p_todas: todas })
 export const waEnviando = () => rpc<WaEnviando[]>('mod_wa_enviando')
 export const waFalhas = () => rpc<WaFalha[]>('mod_wa_falhas')
 export const waReenfileirar = async (id: number) =>
