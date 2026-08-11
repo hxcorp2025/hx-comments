@@ -96,6 +96,16 @@ export const waResponder = async (phoneId: string, waId: string, texto: string) 
     p_phone_id: phoneId, p_wa_id: waId, p_texto: texto,
   }))
 
+export const waResponderMidia = async (args: {
+  phoneId: string; waId: string; path: string; tipo: 'image' | 'audio' | 'document'
+  mime: string; nome?: string | null; caption?: string | null
+}) =>
+  exigirOk(await rpc<{ ok: boolean; erro?: string; fila_id?: number }>('mod_wa_responder_midia', {
+    p_phone_id: args.phoneId, p_wa_id: args.waId, p_midia_path: args.path,
+    p_midia_tipo: args.tipo, p_midia_mime: args.mime,
+    p_midia_nome: args.nome ?? null, p_caption: args.caption ?? null,
+  }))
+
 export const waSugestao = async (id: number, acao: 'aprovar' | 'descartar') =>
   exigirOk(await rpc<{ ok: boolean; erro?: string }>('mod_wa_sugestao', { p_id: id, p_acao: acao }))
 

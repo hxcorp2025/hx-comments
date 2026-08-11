@@ -1,6 +1,6 @@
 import { useEffect, useState, useCallback } from 'react'
 import {
-  waFila, waThread, waResponder, waSugestao, waRegras, waRegraUpsert,
+  waFila, waThread, waResponder, waResponderMidia, waSugestao, waRegras, waRegraUpsert,
   waEnviando, waFalhas, waReenfileirar,
   type WaConversa, type WaMsg, type WaRegra, type WaEnviando, type WaFalha,
 } from '../lib/waDb'
@@ -93,6 +93,7 @@ export default function Whats({ admin, onContagem }: { admin: boolean; onContage
   const [thread, setThread] = useState<WaMsg[]>([])
   const [threadErro, setThreadErro] = useState('')
   const [texto, setTexto] = useState('')
+  const [anexo, setAnexo] = useState<File | null>(null)
   const [ocupado, setOcupado] = useState(false)
   const [aviso, setAviso] = useState('')
   const [verRegras, setVerRegras] = useState(false)
@@ -146,12 +147,49 @@ export default function Whats({ admin, onContagem }: { admin: boolean; onContage
       .catch((e) => setThreadErro(traduzErro(e?.message ?? '')))
   }
 
+  // Meta aceita por link: imagem JPEG/PNG · áudio aac/mp4/mpeg/amr/ogg · resto vai como documento
+  const AUDIO_OK = ['audio/aac', 'audio/mp4', 'audio/mpeg', 'audio/amr', 'audio/ogg', 'audio/ogg; codecs=opus']
+  const MAX_MB: Record<'image' | 'audio' | 'document', number> = { image: 5, audio: 16, document: 100 }
+  function tipoDoAnexo(f: File): { tipo: 'image' | 'audio' | 'document'; erro?: string } {
+    if (f.type === 'image/jpeg' || f.type === 'image/png') return { tipo: 'image' }
+    if (f.type.startsWith('image/')) return { tipo: 'image', erro: 'Esse formato de imagem o WhatsApp não aceita — usa JPG ou PNG.' }
+    if (f.type.startsWith('audio/')) {
+      return AUDIO_OK.includes(f.type) ? { tipo: 'audio' }
+        : { tipo: 'audio', erro: 'Esse formato de áudio o WhatsApp não aceita — usa MP3, OGG ou M4A.' }
+    }
+    return { tipo: 'document' }
+  }
+
   async function enviar(c: WaConversa) {
-    if (ocupado || texto.trim().length < 2) return
+    if (ocupado || (texto.trim().length < 2 && !anexo)) return
     setOcupado(true)
     setAviso('')
     try {
-      await waResponder(c.phone_id, c.wa_id, texto.trim())
+      if (anexo) {
+        const { tipo, erro } = tipoDoAnexo(anexo)
+        if (erro) throw new Error(erro)
+        if (anexo.size > MAX_MB[tipo] * 1024 * 1024) {
+          throw new Error(`Arquivo de ${(anexo.size / 1048576).toFixed(1)}MB — o WhatsApp aceita ` +
+            (tipo === 'image' ? 'imagem até 5MB.' : tipo === 'audio' ? 'áudio até 16MB.' : 'documento até 100MB.'))
+        }
+        const ext = anexo.name.split('.').pop()?.toLowerCase() ?? 'bin'
+        const path = `out/${Date.now()}_${Math.random().toString(36).slice(2, 8)}.${ext}`
+        const { error: eUp } = await sb.storage.from('wa-media')
+          .upload(path, anexo, { contentType: anexo.type || 'application/octet-stream' })
+        if (eUp) throw new Error('Upload falhou: ' + eUp.message)
+        // áudio não tem legenda no WhatsApp: o texto vai como mensagem separada logo depois
+        const legenda = tipo === 'audio' ? null : (texto.trim() || null)
+        await waResponderMidia({
+          phoneId: c.phone_id, waId: c.wa_id, path, tipo,
+          mime: anexo.type, nome: anexo.name, caption: legenda,
+        })
+        if (tipo === 'audio' && texto.trim().length >= 2) {
+          await waResponder(c.phone_id, c.wa_id, texto.trim())
+        }
+        setAnexo(null)
+      } else {
+        await waResponder(c.phone_id, c.wa_id, texto.trim())
+      }
       sessionStorage.removeItem('hx_rascunho_wa_' + chave(c))
       setTexto('')
       setAviso('Na fila de envio — sai em até 1 min. A conversa some da fila quando o envio confirmar.')
@@ -232,7 +270,7 @@ export default function Whats({ admin, onContagem }: { admin: boolean; onContage
           🔴 <b>{falhas.length} resposta(s) NÃO saíram</b> — o cliente não recebeu:
           {falhas.map((f) => (
             <p key={f.id} style={{ margin: '6px 0 0' }}>
-              {f.cliente}: “{f.corpo.slice(0, 60)}{f.corpo.length > 60 ? '…' : ''}” <i>({f.erro})</i>{' '}
+              {f.cliente}: “{f.corpo ? f.corpo.slice(0, 60) + (f.corpo.length > 60 ? '…' : '') : '📎 mídia'}” <i>({f.erro})</i>{' '}
               <button className="btn" disabled={ocupado}
                 onClick={async () => { setOcupado(true); try { await waReenfileirar(f.id); carregar() } catch (e) { setAviso((e as Error).message) } finally { setOcupado(false) } }}>
                 Tentar de novo
@@ -317,19 +355,40 @@ export default function Whats({ admin, onContagem }: { admin: boolean; onContage
                   ) : c.janela === 'fechada' ? (
                     <p className="didatica">Janela de 24h fechada — responder de novo só com template aprovado (em breve).</p>
                   ) : (
-                    <div style={{ display: 'flex', gap: 8, marginTop: 8 }}>
-                      <textarea
-                        value={texto}
-                        onChange={(e) => setTexto(e.target.value)}
-                        placeholder="Escreve a resposta…"
-                        rows={2}
-                        style={{ flex: 1 }}
-                        disabled={ocupado}
-                      />
-                      <button className="btn primario" disabled={ocupado || texto.trim().length < 2}
-                        onClick={() => enviar(c)}>
-                        Enviar
-                      </button>
+                    <div style={{ marginTop: 8 }}>
+                      {anexo && (
+                        <p className="didatica" style={{ margin: '0 0 6px' }}>
+                          📎 {anexo.name} ({(anexo.size / 1024).toFixed(0)} KB){' '}
+                          <button className="btn" style={{ minHeight: 26, padding: '2px 8px' }}
+                            onClick={() => setAnexo(null)}>remover</button>
+                          {' '}— {anexo.type.startsWith('audio/')
+                            ? 'áudio não leva legenda: o texto sai como mensagem separada'
+                            : 'o texto vai junto como legenda'}
+                        </p>
+                      )}
+                      <div style={{ display: 'flex', gap: 8 }}>
+                        <label className="btn" title="Anexar imagem (JPG/PNG), áudio ou PDF"
+                          style={{ cursor: 'pointer', display: 'flex', alignItems: 'center' }}>
+                          📎
+                          <input type="file"
+                            accept="image/png,image/jpeg,audio/ogg,audio/mpeg,audio/mp4,audio/aac,audio/amr,application/pdf"
+                            style={{ display: 'none' }} disabled={ocupado}
+                            onChange={(e) => { setAnexo(e.target.files?.[0] ?? null); e.target.value = '' }} />
+                        </label>
+                        <textarea
+                          value={texto}
+                          onChange={(e) => setTexto(e.target.value)}
+                          placeholder={anexo ? 'Legenda (opcional)…' : 'Escreve a resposta…'}
+                          rows={2}
+                          style={{ flex: 1 }}
+                          disabled={ocupado}
+                        />
+                        <button className="btn primario"
+                          disabled={ocupado || (texto.trim().length < 2 && !anexo)}
+                          onClick={() => enviar(c)}>
+                          Enviar
+                        </button>
+                      </div>
                     </div>
                   )}
                 </div>
