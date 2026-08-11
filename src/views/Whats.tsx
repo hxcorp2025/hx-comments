@@ -7,11 +7,16 @@ import {
 import { traduzErro } from '../lib/db'
 import { sb } from '../lib/supabase'
 
-// placeholder "(image)" da fila vira rótulo legível
+// placeholder de mídia vira rótulo legível — a fila manda "[image]" e a thread "(image)"
 const MIDIA_ROTULO: Record<string, string> = {
-  '(image)': '📷 Foto', '(sticker)': '💟 Figurinha', '(audio)': '🎙️ Áudio',
-  '(video)': '🎬 Vídeo', '(document)': '📄 Documento', '(reaction)': '👍 Reação',
-  '(unsupported)': '(mensagem não suportada)',
+  image: '📷 Foto', sticker: '💟 Figurinha', audio: '🎙️ Áudio',
+  video: '🎬 Vídeo', document: '📄 Documento', reaction: '👍 Reação',
+  contacts: '👤 Contato', location: '📍 Localização',
+  unsupported: '(mensagem não suportada)',
+}
+const rotuloMidia = (corpo: string) => {
+  const m = corpo.match(/^[[(]([a-z_]+)[\])]$/)
+  return m ? (MIDIA_ROTULO[m[1]] ?? corpo) : corpo
 }
 
 // arquivo mora no bucket PRIVADO wa-media; o navegador só enxerga via URL assinada
@@ -258,7 +263,7 @@ export default function Whats({ admin, onContagem }: { admin: boolean; onContage
                 </span>
               </div>
 
-              <p style={{ margin: '8px 0', whiteSpace: 'pre-wrap' }}>{MIDIA_ROTULO[c.ultima_mensagem] ?? c.ultima_mensagem}</p>
+              <p style={{ margin: '8px 0', whiteSpace: 'pre-wrap' }}>{rotuloMidia(c.ultima_mensagem)}</p>
               <p className="didatica" style={{ margin: 0 }}>
                 esperando há {c.esperando_h.toFixed(1)} h
               </p>
@@ -289,7 +294,7 @@ export default function Whats({ admin, onContagem }: { admin: boolean; onContage
                       opacity: m.direcao === 'out' ? 0.85 : 1,
                     }}>
                       <span className="pill">{m.direcao === 'out' ? (m.operador ?? 'nós') : c.cliente}</span>{' '}
-                      {m.midia_path ? <MidiaMsg m={m} /> : (MIDIA_ROTULO[m.corpo] ?? m.corpo)}
+                      {m.midia_path ? <MidiaMsg m={m} /> : rotuloMidia(m.corpo)}
                     </p>
                   ))}
 
