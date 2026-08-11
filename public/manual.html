@@ -1,0 +1,205 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>Manual — Central de Comentários HX</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  :root {
+    --bg: #0e1013; --card: #16181d; --card2: #1c1f26; --borda: #26282e;
+    --texto: #e8e9ec; --suave: #9aa0ab; --acento: #6ab0f3;
+    --ok-bg: #1d3d28; --ok-tx: #a3e0b4;
+    --rev-bg: #4a3a17; --rev-tx: #f0cd7a;
+    --red-bg: #4a1f1c; --red-tx: #f0a49e; --red: #e5484d;
+    --ig-bg: #4a2440; --ig-tx: #eba9d4;
+    --fb-bg: #1b3a5c; --fb-tx: #9cc7f0;
+    --resp-bg: #1c3a4a; --resp-tx: #9ed4f0;
+  }
+  html, body { background: var(--bg); color: var(--texto);
+    font: 16px/1.65 -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
+  .pagina { max-width: 860px; margin: 0 auto; padding: 28px 18px 80px; }
+  header.hero { padding: 26px 0 18px; border-bottom: 1px solid var(--borda); margin-bottom: 22px; }
+  .hero h1 { font-size: 26px; letter-spacing: -0.3px; }
+  .hero p.sub { color: var(--suave); margin-top: 6px; max-width: 62ch; }
+  .hero .app { display: inline-block; margin-top: 12px; background: var(--card2); border: 1px solid var(--borda);
+    padding: 8px 14px; border-radius: 10px; color: var(--acento); text-decoration: none; font-weight: 600; }
+  nav.toc { display: flex; flex-wrap: wrap; gap: 8px; margin: 18px 0 26px; }
+  nav.toc a { font-size: 13px; color: var(--suave); text-decoration: none; background: var(--card);
+    border: 1px solid var(--borda); border-radius: 999px; padding: 5px 12px; }
+  nav.toc a:hover, nav.toc a:focus-visible { color: var(--texto); border-color: var(--acento); outline: none; }
+  section { background: var(--card); border: 1px solid var(--borda); border-radius: 14px;
+    padding: 20px 22px; margin-bottom: 18px; }
+  section h2 { font-size: 19px; margin-bottom: 4px; }
+  section h2 .num { color: var(--acento); font-variant-numeric: tabular-nums; margin-right: 6px; }
+  section p, section li { color: var(--texto); }
+  section p.mini { color: var(--suave); font-size: 14px; margin-bottom: 12px; }
+  ul, ol { margin: 8px 0 4px 22px; display: grid; gap: 6px; }
+  b { font-weight: 650; }
+  .pill { display: inline-block; padding: 2px 10px; border-radius: 999px; font-size: 12.5px; font-weight: 600; white-space: nowrap; }
+  .pill.rev { background: var(--rev-bg); color: var(--rev-tx); }
+  .pill.golpe { background: var(--red); color: #fff; }
+  .pill.ok { background: var(--ok-bg); color: var(--ok-tx); }
+  .pill.ig { background: var(--ig-bg); color: var(--ig-tx); }
+  .pill.fb { background: var(--fb-bg); color: var(--fb-tx); }
+  .pill.resp { background: var(--resp-bg); color: var(--resp-tx); }
+  .tabela-wrap { overflow-x: auto; margin: 12px 0 4px; }
+  table { border-collapse: collapse; width: 100%; font-size: 14.5px; }
+  th, td { text-align: left; padding: 9px 12px; border-bottom: 1px solid var(--borda); vertical-align: top; }
+  th { color: var(--suave); font-size: 12.5px; text-transform: uppercase; letter-spacing: 0.06em; }
+  td:first-child { white-space: nowrap; font-weight: 600; }
+  .aviso { background: var(--card2); border-left: 3px solid var(--acento); border-radius: 8px;
+    padding: 12px 14px; margin: 12px 0 4px; font-size: 14.5px; }
+  .aviso.vermelho { border-left-color: var(--red); }
+  .aviso.amarelo { border-left-color: var(--rev-tx); }
+  .caixa-msg { background: var(--card2); border: 1px solid var(--borda); border-radius: 10px;
+    padding: 12px 14px; font-size: 14px; color: var(--suave); margin: 10px 0 2px; }
+  .caixa-msg b { color: var(--texto); }
+  .relogio span { display: inline-block; margin-right: 10px; font-size: 14px; }
+  .dot { display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-right: 5px; vertical-align: -1px; }
+  footer { color: var(--suave); font-size: 13px; text-align: center; margin-top: 34px; }
+  a { color: var(--acento); }
+  @media (max-width: 560px) { .hero h1 { font-size: 22px; } section { padding: 16px; } }
+</style>
+</head>
+<body>
+<div class="pagina">
+
+<header class="hero">
+  <h1>🗣️ Central HX — Manual de uso</h1>
+  <p class="sub">Comentários dos anúncios (Facebook, Instagram e TikTok) e as conversas de WhatsApp
+  dos números do Sortudão, num painel só — com um robô que oculta golpe, responde dúvida de lead
+  em público e no privado, e deixa pra gente só o que precisa de decisão humana.</p>
+  <a class="app" href="https://central.hx-corp.com">Abrir a Central →</a>
+</header>
+
+<nav class="toc" aria-label="índice">
+  <a href="#entrar">Entrar</a><a href="#abas">Mapa das abas</a><a href="#fila">Fila</a>
+  <a href="#responder">Responder comentário</a><a href="#whats">WhatsApp</a><a href="#regras">Regras</a>
+  <a href="#automatico">Robô: resposta + DM</a><a href="#nunca">O que o robô nunca faz</a>
+  <a href="#tiktok">TikTok</a><a href="#dicas">Dicas</a>
+</nav>
+
+<section id="entrar">
+  <h2><span class="num">1.</span>Entrar</h2>
+  <ol>
+    <li>Acessa <b>central.hx-corp.com</b> (funciona no celular também).</li>
+    <li>Login = teu e-mail <b>@hookmidia.com</b> (Matheus, Patrick, Lorenzo e Peterson têm acesso). A senha o Matheus te passa.</li>
+    <li>Esqueceu? Botão <b>"Esqueci a senha"</b> manda link pro teu e-mail.</li>
+  </ol>
+</section>
+
+<section id="abas">
+  <h2><span class="num">2.</span>Mapa das abas</h2>
+  <div class="tabela-wrap"><table>
+    <tr><th>Aba</th><th>O que é</th></tr>
+    <tr><td>Fila</td><td>Só o que precisa de <b>decisão humana</b>: comentário suspeito que o robô marcou pra revisão, ou ação que falhou. O número na aba é o tamanho da fila.</td></tr>
+    <tr><td>WhatsApp</td><td>Conversas dos números do Sortudão esperando resposta nossa (janela de 24h correndo).</td></tr>
+    <tr><td>TikTok · Facebook · Instagram</td><td>Feed de comentários por plataforma, pra navegar e agir fora da fila.</td></tr>
+    <tr><td>Regras</td><td>O cérebro do robô: o que ele oculta, o que ele responde e como.</td></tr>
+    <tr><td>Insights</td><td>Números da moderação (volumes, classes, tendências).</td></tr>
+    <tr><td>Log</td><td>Rastro de tudo: quem fez o quê, quando — inclusive o robô.</td></tr>
+  </table></div>
+</section>
+
+<section id="fila">
+  <h2><span class="num">3.</span>Fila de comentários — o dia a dia</h2>
+  <p class="mini">Abre a Fila, resolve de cima pra baixo. Cada card mostra o comentário, a plataforma e a classe.</p>
+  <ul>
+    <li><span class="pill rev">marca pra revisão</span> — o robô achou suspeito mas não teve certeza. Tu decide: ocultar, liberar ou responder.</li>
+    <li><b>Ocultar</b> — o comentário some pro público (o autor não é avisado e continua vendo o próprio comentário). Vira <b>"aguardando"</b> por até 1 minuto enquanto o robô executa na plataforma.</li>
+    <li><b>Liberar</b> — devolve um comentário oculto pro público.</li>
+    <li><b>Responder</b> — abre a caixa de resposta (regras no item 4).</li>
+    <li>Se uma ação <b>falhar na plataforma</b>, o comentário volta pra fila com aviso — aí é só tentar de novo.</li>
+  </ul>
+</section>
+
+<section id="responder">
+  <h2><span class="num">4.</span>Responder comentário (manual)</h2>
+  <ul>
+    <li><b>Operador responde com template aprovado</b> (lista pronta na caixa de resposta). Texto livre é só do admin — é a página do cliente falando em público.</li>
+    <li>Limites de segurança: <b>10 respostas/hora</b> por pessoa e <b>100/dia</b> no total.</li>
+    <li>A resposta sai <b>como a página Diego Rox</b>.</li>
+    <li>💡 No <b>Instagram</b>, link em comentário <b>não clica</b> — evita colar URL em resposta pública de IG. Quem faz o serviço do link lá é o DM automático (item 7).</li>
+  </ul>
+</section>
+
+<section id="whats">
+  <h2><span class="num">5.</span>Aba WhatsApp</h2>
+  <p class="mini">O WhatsApp só deixa a gente responder de graça em até 24h após a última mensagem do cliente. O relógio de cada conversa mostra quanto falta:</p>
+  <p class="relogio">
+    <span><span class="dot" style="background:#a3e0b4"></span>tranquilo (&gt;8h)</span>
+    <span><span class="dot" style="background:#f5a623"></span>corre (&lt;8h)</span>
+    <span><span class="dot" style="background:#e5484d"></span>urgente (&lt;4h)</span>
+  </p>
+  <ul>
+    <li><b>Clica na conversa</b> → abre o histórico → escreve → <b>Enviar</b>. A resposta sai do mesmo número onde o cliente escreveu, em até 1 minuto ("a caminho" → some da fila quando confirma).</li>
+    <li><b>Sugestões</b> — quando uma mensagem casa com regra em modo "sugerir", aparece a resposta pronta: <b>Aprovar</b> (envia) ou <b>Descartar</b>.</li>
+    <li><b>Seção vermelha</b> — respostas que NÃO saíram (o cliente não recebeu): revisa e clica <b>Reenviar</b>.</li>
+    <li><b>Janela fechada</b> — só mostra a conversa; envio bloqueado (retomada por template pago vem na v1.1).</li>
+    <li><span class="pill golpe">controle: NÃO responder</span> — conversa de experimento; o painel bloqueia o envio de propósito. Não tenta responder por fora.</li>
+    <li>O que tu digita fica <b>salvo como rascunho</b> sozinho — pode trocar de aba sem medo.</li>
+  </ul>
+</section>
+
+<section id="regras">
+  <h2><span class="num">6.</span>Regras — o cérebro do robô</h2>
+  <ul>
+    <li><b>Criar regra</b>: escreve o termo (palavra ou padrão), a descrição, e clica <b>Testar (preview)</b> — mostra em quantos comentários reais ela bateria. Regra que pega mais de 20% é bloqueada (genérica demais).</li>
+    <li>Toda regra nasce <span class="pill rev">marca pra revisão</span> e fica <b>48h em observação</b>. Se ela se provar certeira, o botão <b>Promover a auto-ocultar</b> libera — e ela vira <span class="pill golpe">oculta sozinha</span>.</li>
+    <li><b>Desligar</b> qualquer regra a qualquer momento (qualquer operador). Religa quando quiser.</li>
+    <li>⚠️ Nunca criar regra com termo genérico do produto: "pix" sozinho JAMAIS — "fiz o pix e ganhei" é prova social, não golpe.</li>
+  </ul>
+</section>
+
+<section id="automatico">
+  <h2><span class="num">7.</span>O robô respondendo sozinho — resposta pública + DM</h2>
+  <p class="mini">Regra de dúvida de lead (ex.: "como faço para participar?") responde na hora, 24/7. Como funciona por plataforma:</p>
+  <div class="tabela-wrap"><table>
+    <tr><th>Onde</th><th>O que sai</th></tr>
+    <tr><td><span class="pill fb">Facebook</span></td><td>Resposta pública <b>com o link</b> do site (lá o link clica) — rastreada por PDV + UTM.</td></tr>
+    <tr><td><span class="pill ig">Instagram</span></td><td>Resposta pública <b>curta e sem link</b> (aponta o botão do anúncio) <b>+ DM no privado</b> com o link clicável e rastreado.</td></tr>
+  </table></div>
+  <ul>
+    <li>Cada regra tem <b>até 3 versões</b> de cada tipo — o robô sorteia, pra não parecer carimbo.</li>
+    <li><b>Quem responder o DM cai no Direct da página</b> Diego Rox — alguém do time precisa acompanhar o Direct e continuar a conversa (a janela de resposta é de 24h).</li>
+    <li>Escrever/editar os textos = <b>admin (Matheus)</b>. <b>Parar</b> ("Parar de responder" / "Parar DM") = <b>qualquer operador, na hora</b> — é o botão de pânico.</li>
+    <li>Badges no card da regra: <span class="pill resp">responde sozinha (3)</span> <span class="pill ig">DM no IG (3)</span> <span class="pill ig">IG sem link (3)</span></li>
+  </ul>
+  <div class="aviso">📊 Toda venda que nascer daí chega separada nos números: <b>utm_source=comentarios</b>, com <b>utm_medium=auto</b> (resposta pública) ou <b>dm</b> (privado).</div>
+</section>
+
+<section id="nunca">
+  <h2><span class="num">8.</span>O que o robô NUNCA faz sozinho</h2>
+  <ul>
+    <li><b>Dinheiro nunca é automático</b>: comentário de golpe, pix ou reclamação de compra jamais recebe resposta do robô — vai pra Fila e um humano decide.</li>
+    <li>Não responde comentário <b>oculto</b>, nem <b>resposta de resposta</b>, nem a <b>própria página</b>.</li>
+    <li>Máximo <b>2 respostas públicas</b> e <b>1 DM por pessoa por dia</b> — ninguém é metralhado.</li>
+    <li>Tetos diários gerais (60 respostas / 30 DMs) — estourou, o comentário vai pra Fila normal.</li>
+  </ul>
+  <div class="aviso vermelho">🚨 Viu o robô responder algo estranho? <b>"Parar de responder"</b> na aba Regras (qualquer um pode) e avisa o Matheus.</div>
+</section>
+
+<section id="tiktok">
+  <h2><span class="num">9.</span>TikTok — atenção</h2>
+  <p>Os comentários dos anúncios atuais do TikTok <b>não chegam na Central</b> (a API do TikTok não
+  fornece comentários desse tipo de campanha — limitação deles, já confirmada por escrito).</p>
+  <div class="aviso amarelo">Moderação do TikTok é no próprio Gerenciador: <b>Ferramentas → Comentários</b>. Vale varrer junto com a rotina do Meta.</div>
+</section>
+
+<section id="dicas">
+  <h2><span class="num">10.</span>Dicas rápidas</h2>
+  <ul>
+    <li>Comentário <b>"aguardando"</b> = já tem ação a caminho. Não repete o clique nem responde de novo.</li>
+    <li>Reclamação de compra: responder manual, com calma e dado real — nunca no automático.</li>
+    <li>Raspadinha "não recebi": é <b>autoatendimento</b> no site (Menu → Consultar Minhas Raspadinhas Relâmpago → CPF).</li>
+    <li>O texto digitado se salva sozinho (rascunho) — trocar de aba não perde nada.</li>
+    <li>Ideia de regra nova, template novo ou dúvida → <b>Matheus</b>.</li>
+  </ul>
+</section>
+
+<footer>Central de Comentários HX · manual atualizado em 11/08/2026 · dúvidas: Matheus — ⚡ HX</footer>
+</div>
+</body>
+</html>

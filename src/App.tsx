@@ -106,6 +106,10 @@ export default function App() {
       <header className="topo">
         <h1>🗣️ Central de Comentários</h1>
         <span className="quem">
+          <a href="/manual.html" target="_blank" rel="noreferrer" className="btn"
+            style={{ minHeight: 32, padding: '4px 10px', textDecoration: 'none', marginRight: 6 }}>
+            📖 Manual
+          </a>
           {session.user.email?.split('@')[0]}{' '}
           <button className="btn" style={{ minHeight: 32, padding: '4px 10px' }} onClick={() => sb.auth.signOut()} aria-label="sair">
             <LogOut size={14} />
