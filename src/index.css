@@ -39,7 +39,7 @@ a { color: var(--blue); }
 /* tabs fixas embaixo no mobile (polegar), topo no desktop */
 .tabs {
   position: fixed; bottom: 0; left: 0; right: 0; z-index: 20;
-  /* 9 abas x 44px de alvo minimo = 404px, nao cabe em tela de 360/390px.
+  /* 8 abas x 44px de alvo minimo = 352px, aperta em tela de 360px e estoura com a proxima aba.
      Rolagem horizontal em vez de space-around: nada sai da tela nem se sobrepoe.
      Nao usar flex-wrap: .app tem padding-bottom e .bulkbar tem bottom calibrados
      pra barra de UMA linha. */

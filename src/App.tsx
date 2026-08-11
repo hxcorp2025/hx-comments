@@ -1,6 +1,6 @@
 import { useEffect, useState, useCallback } from 'react'
 import type { Session } from '@supabase/supabase-js'
-import { Inbox, Music2, Facebook, Instagram, MessageCircle, Smartphone, ShieldBan, BarChart3, ScrollText, LogOut } from 'lucide-react'
+import { Inbox, Music2, Facebook, Instagram, MessageCircle, ShieldBan, BarChart3, ScrollText, LogOut } from 'lucide-react'
 import { sb } from './lib/supabase'
 import { listTemplates, contarFila } from './lib/db'
 import type { Template } from './lib/types'
@@ -9,12 +9,11 @@ import AvisoVersao from './components/AvisoVersao'
 import Fila from './views/Fila'
 import Feed from './views/Feed'
 import Whats from './views/Whats'
-import Instancias from './views/Instancias'
 import Regras from './views/Regras'
 import Insights from './views/Insights'
 import LogView from './views/LogView'
 
-type Aba = 'fila' | 'whats' | 'tiktok' | 'fb' | 'ig' | 'instancias' | 'regras' | 'insights' | 'log'
+type Aba = 'fila' | 'whats' | 'tiktok' | 'fb' | 'ig' | 'regras' | 'insights' | 'log'
 type Acesso = 'checando' | 'liberado' | 'negado' | 'offline'
 
 const ABAS: { id: Aba; rotulo: string; Icone: typeof Inbox }[] = [
@@ -23,7 +22,6 @@ const ABAS: { id: Aba; rotulo: string; Icone: typeof Inbox }[] = [
   { id: 'tiktok', rotulo: 'TikTok', Icone: Music2 },
   { id: 'fb', rotulo: 'Facebook', Icone: Facebook },
   { id: 'ig', rotulo: 'Instagram', Icone: Instagram },
-  { id: 'instancias', rotulo: 'Instâncias', Icone: Smartphone },
   { id: 'regras', rotulo: 'Regras', Icone: ShieldBan },
   { id: 'insights', rotulo: 'Insights', Icone: BarChart3 },
   { id: 'log', rotulo: 'Log', Icone: ScrollText },
@@ -136,7 +134,6 @@ export default function App() {
       {aba === 'tiktok' && <Feed plataforma="tiktok" templates={templates} admin={admin} />}
       {aba === 'fb' && <Feed plataforma="fb" templates={templates} admin={admin} />}
       {aba === 'ig' && <Feed plataforma="ig" templates={templates} admin={admin} />}
-      {aba === 'instancias' && <Instancias admin={admin} />}
       {aba === 'regras' && <Regras />}
       {aba === 'insights' && <Insights />}
       {aba === 'log' && <LogView />}
