@@ -5,3 +5,6 @@ RELATORIO-HX.md
 .env.*
 *.local
 .DS_Store
+
+# incremental do tsc: build velha presa aqui faz o CI pular a checagem de tipos
+tsconfig.tsbuildinfo

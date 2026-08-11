@@ -39,12 +39,19 @@ a { color: var(--blue); }
 /* tabs fixas embaixo no mobile (polegar), topo no desktop */
 .tabs {
   position: fixed; bottom: 0; left: 0; right: 0; z-index: 20;
-  display: flex; justify-content: space-around;
+  /* 9 abas x 44px de alvo minimo = 404px, nao cabe em tela de 360/390px.
+     Rolagem horizontal em vez de space-around: nada sai da tela nem se sobrepoe.
+     Nao usar flex-wrap: .app tem padding-bottom e .bulkbar tem bottom calibrados
+     pra barra de UMA linha. */
+  display: flex; justify-content: flex-start;
+  overflow-x: auto; scrollbar-width: none; -webkit-overflow-scrolling: touch;
   background: var(--panel); border-top: 1px solid var(--line);
   padding: 6px 4px calc(6px + env(safe-area-inset-bottom));
 }
+.tabs::-webkit-scrollbar { display: none; }
 .tabs button {
   display: flex; flex-direction: column; align-items: center; gap: 2px;
+  flex: 0 0 auto;
   background: none; color: var(--muted); font-size: 11px;
   padding: 6px 8px; min-width: 44px; min-height: 44px;
 }
@@ -52,7 +59,8 @@ a { color: var(--blue); }
 @media (min-width: 720px) { .tabs button.on { border-top: none; border-bottom: 2px solid var(--accent); margin: 0 0 -1px; } }
 .tabs button:active { transform: scale(0.96); }
 @media (min-width: 720px) {
-  .tabs { position: sticky; top: 0; bottom: auto; border-top: none; border-bottom: 1px solid var(--line); border-radius: var(--radius); margin-bottom: 14px; }
+  .tabs { position: sticky; top: 0; bottom: auto; justify-content: space-around; overflow-x: visible;
+          border-top: none; border-bottom: 1px solid var(--line); border-radius: var(--radius); margin-bottom: 14px; }
   .app { padding-bottom: 20px; }
 }
 

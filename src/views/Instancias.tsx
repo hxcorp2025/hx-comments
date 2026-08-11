@@ -16,16 +16,25 @@ function estadoDe(e: string | null) {
   return ROTULO_ESTADO[e ?? ''] ?? { texto: e ?? 'desconhecido', pill: 'neutro' }
 }
 
+// erro é escopado: mostrar no card onde a ação foi pedida, não no rodapé da página
+// (no celular, com várias instâncias, erro no rodapé nasce fora da tela)
+type Erro = { onde: string; msg: string } | null
+const NOVO = '_novo'
+
 export default function Instancias({ admin }: { admin: boolean }) {
   const [itens, setItens] = useState<EvoInstancia[]>([])
   const [falhouCarregar, setFalhouCarregar] = useState('')
-  const [erro, setErro] = useState('')
+  const [erro, setErro] = useState<Erro>(null)
   const [ocupado, setOcupado] = useState(false)
   const [nome, setNome] = useState('')
   const [rotulo, setRotulo] = useState('')
   const [apagando, setApagando] = useState<string | null>(null)
+  const [desconectando, setDesconectando] = useState<string | null>(null)
   const [confirmacao, setConfirmacao] = useState('')
-  const primeiraCarga = useRef(true)
+  const [carregou, setCarregou] = useState(false)
+  // instâncias cujo QR já venceu e que já tiveram o estado conferido uma vez
+  const conferidas = useRef<Set<string>>(new Set())
+  const tinhaQr = useRef<Set<string>>(new Set())
 
   const carregar = useCallback(async () => {
     try {
@@ -34,42 +43,52 @@ export default function Instancias({ admin }: { admin: boolean }) {
     } catch (e) {
       setFalhouCarregar(traduzErro(e instanceof Error ? e.message : ''))
     } finally {
-      primeiraCarga.current = false
+      setCarregou(true)
     }
   }, [])
 
   useEffect(() => { carregar() }, [carregar])
 
-  // Enquanto houver QR na tela ou pedido na fila, o worker está trabalhando:
-  // recarrega de 3 em 3s pra o QR aparecer e o estado virar sozinho.
   const trabalhando = itens.some((i) => i.qr_fresco || i.pedido_em_andamento)
+
+  // com QR na tela ou pedido na fila, recarrega de 3 em 3s; senão, devagar.
+  // Pausa com a aba em segundo plano pra não bater no banco com o celular no bolso.
   useEffect(() => {
-    const t = setInterval(carregar, trabalhando ? 3000 : 20000)
-    return () => clearInterval(t)
+    let t: number | undefined
+    const liga = () => {
+      clearInterval(t)
+      if (document.hidden) return
+      t = setInterval(carregar, trabalhando ? 3000 : 20000) as unknown as number
+    }
+    liga()
+    document.addEventListener('visibilitychange', liga)
+    return () => { clearInterval(t); document.removeEventListener('visibilitychange', liga) }
   }, [carregar, trabalhando])
 
-  async function agir(fn: () => Promise<unknown>) {
+  // QR venceu sem virar "conectado"? confere o estado UMA vez — senão o card fica
+  // mentindo "aguardando leitura" por até 5 min depois de a pessoa já ter lido.
+  useEffect(() => {
+    for (const i of itens) {
+      if (i.qr_fresco) { tinhaQr.current.add(i.nome); conferidas.current.delete(i.nome); continue }
+      if (tinhaQr.current.has(i.nome) && i.estado !== 'open' && !conferidas.current.has(i.nome)
+          && !i.pedido_em_andamento) {
+        conferidas.current.add(i.nome)
+        evoEstado(i.nome).then(carregar).catch(() => {})
+      }
+    }
+  }, [itens, carregar])
+
+  async function agir(onde: string, fn: () => Promise<unknown>) {
     if (ocupado) return
-    setErro('')
+    setErro(null)
     setOcupado(true)
     try { await fn(); await carregar() }
-    catch (e) { setErro(e instanceof Error ? e.message : 'falhou') }
+    catch (e) { setErro({ onde, msg: e instanceof Error ? e.message : 'falhou' }) }
     finally { setOcupado(false) }
   }
 
-  async function criar() {
-    await agir(async () => {
-      await evoCriar(nome.trim().toLowerCase(), rotulo.trim())
-      setNome(''); setRotulo('')
-    })
-  }
-
-  async function apagar(n: string) {
-    await agir(async () => {
-      await evoApagar(n, confirmacao.trim())
-      setApagando(null); setConfirmacao('')
-    })
-  }
+  const erroDe = (onde: string) =>
+    erro?.onde === onde ? <p className="erro" role="alert">{erro.msg}</p> : null
 
   if (falhouCarregar) {
     return (
@@ -90,43 +109,55 @@ export default function Instancias({ admin }: { admin: boolean }) {
         <b> Desconectado</b> = caiu ou nunca foi lido, e é só gerar o QR de novo.
         <br />
         O painel não fala com o WhatsApp direto: ele registra o pedido e um serviço no banco
-        executa em uns 10 segundos. Por isso o botão responde na hora e o resultado aparece logo
-        depois, sozinho.
+        executa em uns 10 segundos (se tiver fila, um pouco mais). Por isso o botão responde na
+        hora e o resultado aparece logo depois, sozinho.
       </div>
 
       {admin && (
         <div className="card">
           <h3 style={{ marginBottom: 8 }}>Conectar um número novo</h3>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+            <label htmlFor="evo-nome" className="didatica">Nome curto, sem espaço</label>
             <input
-              placeholder="nome curto, sem espaço (ex.: rox-disparo-01)"
+              id="evo-nome"
+              placeholder="ex.: rox-disparo-01"
               value={nome}
               maxLength={41}
-              onChange={(e) => setNome(e.target.value.toLowerCase().replace(/[^a-z0-9_-]/g, ''))}
+              onChange={(e) => setNome(
+                e.target.value.toLowerCase()
+                  .replace(/[^a-z0-9_-]/g, '')
+                  .replace(/^[^a-z0-9]+/, ''), // o banco exige começar por letra ou número
+              )}
             />
+            <label htmlFor="evo-rotulo" className="didatica">Rótulo pra vocês lembrarem</label>
             <input
-              placeholder="rótulo pra vocês lembrarem (ex.: chip do Peterson, comunidades VIP)"
+              id="evo-rotulo"
+              placeholder="ex.: chip do Peterson, comunidades VIP"
               value={rotulo}
               onChange={(e) => setRotulo(e.target.value)}
             />
             <div className="acoes">
-              <button className="btn primario" disabled={nome.length < 3 || ocupado} onClick={criar}>
+              <button className="btn primario" disabled={nome.length < 3 || ocupado}
+                onClick={() => agir(NOVO, async () => {
+                  await evoCriar(nome, rotulo.trim()); setNome(''); setRotulo('')
+                })}>
                 Criar e gerar QR
               </button>
-              <button className="btn" disabled={ocupado} onClick={() => agir(evoSincronizar)}>
+              <button className="btn" disabled={ocupado}
+                onClick={() => agir(NOVO, evoSincronizar)}>
                 Atualizar lista
               </button>
             </div>
             <p className="didatica">
-              O nome não pode mudar depois e é o que aparece nos logs. Use minúsculas, números,
-              hífen ou sublinhado, de 3 a 41 caracteres.
+              O nome não pode mudar depois e é o que aparece nos logs. Minúsculas, números, hífen
+              ou sublinhado, de 3 a 41 caracteres, começando por letra ou número.
             </p>
-            {erro && <p className="erro">{erro}</p>}
+            {erroDe(NOVO)}
           </div>
         </div>
       )}
 
-      {itens.length === 0 && !primeiraCarga.current && (
+      {itens.length === 0 && carregou && (
         <div className="vazio">
           <span className="emoji">📱</span>
           Nenhuma instância ainda. {admin ? 'Cria a primeira aí em cima.' : 'Fala com o Matheus.'}
@@ -161,17 +192,19 @@ export default function Instancias({ admin }: { admin: boolean }) {
                 <p className="didatica" style={{ marginBottom: 6 }}>
                   No celular: <b>WhatsApp → Configurações → Aparelhos conectados → Conectar
                   aparelho</b>, e aponte pra este código. Ele vale mais ou menos 1 minuto; se
-                  vencer, é só tocar em "Gerar QR" de novo.
+                  vencer, é só tocar em "Gerar QR" de novo. Depois de ler, o painel confirma
+                  sozinho em alguns segundos.
                 </p>
                 <img
                   src={i.qr_base64}
                   alt={`QR code para conectar a instância ${i.nome}`}
                   style={{ width: 260, maxWidth: '100%', imageRendering: 'pixelated',
-                           border: '1px solid var(--linha, #ddd)', borderRadius: 8, background: '#fff' }}
+                           border: '1px solid var(--line)', borderRadius: 8, background: '#fff' }}
                 />
-                {i.pareamento && (
+                {i.pareamento && i.pareamento.length <= 12 && (
                   <p className="didatica" style={{ marginTop: 6 }}>
-                    Não consegue ler o código? Dá pra parear por texto também.
+                    Não consegue ler o código? Em <b>Conectar aparelho → Conectar com número de
+                    telefone</b>, digite: <code>{i.pareamento}</code>
                   </p>
                 )}
               </div>
@@ -182,26 +215,48 @@ export default function Instancias({ admin }: { admin: boolean }) {
             <div className="acoes">
               {i.estado !== 'open' && (
                 <button className="btn primario" disabled={ocupado}
-                  onClick={() => agir(() => evoConectar(i.nome))}>
+                  onClick={() => agir(i.nome, () => evoConectar(i.nome))}>
                   {i.qr_fresco ? 'Gerar QR de novo' : 'Gerar QR'}
                 </button>
               )}
-              <button className="btn" disabled={ocupado} onClick={() => agir(() => evoEstado(i.nome))}>
+              <button className="btn" disabled={ocupado}
+                onClick={() => agir(i.nome, () => evoEstado(i.nome))}>
                 Conferir estado
               </button>
-              {admin && i.estado === 'open' && (
-                <button className="btn" disabled={ocupado}
-                  onClick={() => agir(() => evoDesconectar(i.nome))}>
+              {admin && i.estado === 'open' && desconectando !== i.nome && (
+                <button className="btn perigo" disabled={ocupado}
+                  onClick={() => { setDesconectando(i.nome); setErro(null) }}>
                   Desconectar
                 </button>
               )}
               {admin && apagando !== i.nome && (
                 <button className="btn perigo" disabled={ocupado}
-                  onClick={() => { setApagando(i.nome); setConfirmacao(''); setErro('') }}>
+                  onClick={() => { setApagando(i.nome); setConfirmacao(''); setErro(null) }}>
                   Apagar
                 </button>
               )}
             </div>
+
+            {desconectando === i.nome && (
+              <div style={{ marginTop: 10, display: 'flex', flexDirection: 'column', gap: 8 }}>
+                <div className="didatica">
+                  <b>Desconectar {i.nome}?</b> O número para de enviar na hora e só volta quando
+                  alguém estiver com o celular na mão pra ler o QR de novo.
+                </div>
+                <div className="acoes">
+                  <button className="btn perigo" disabled={ocupado}
+                    onClick={() => agir(i.nome, async () => {
+                      await evoDesconectar(i.nome); setDesconectando(null)
+                    })}>
+                    Desconectar mesmo assim
+                  </button>
+                  <button className="btn" disabled={ocupado}
+                    onClick={() => setDesconectando(null)}>
+                    Cancelar
+                  </button>
+                </div>
+              </div>
+            )}
 
             {apagando === i.nome && (
               <div style={{ marginTop: 10, display: 'flex', flexDirection: 'column', gap: 8 }}>
@@ -210,11 +265,14 @@ export default function Instancias({ admin }: { admin: boolean }) {
                   conectada, o número cai e o histórico dela some. Pra confirmar, digite
                   <b> {i.nome}</b> abaixo.
                 </div>
-                <input placeholder={i.nome} value={confirmacao}
-                  onChange={(e) => setConfirmacao(e.target.value)} />
+                <input aria-label={`digite ${i.nome} para confirmar`} placeholder={i.nome}
+                  value={confirmacao} onChange={(e) => setConfirmacao(e.target.value)} />
                 <div className="acoes">
                   <button className="btn perigo" disabled={ocupado || confirmacao.trim() !== i.nome}
-                    onClick={() => apagar(i.nome)}>
+                    onClick={() => agir(i.nome, async () => {
+                      await evoApagar(i.nome, confirmacao.trim())
+                      setApagando(null); setConfirmacao('')
+                    })}>
                     Apagar de verdade
                   </button>
                   <button className="btn" disabled={ocupado}
@@ -222,14 +280,13 @@ export default function Instancias({ admin }: { admin: boolean }) {
                     Cancelar
                   </button>
                 </div>
-                {erro && <p className="erro">{erro}</p>}
               </div>
             )}
+
+            {erroDe(i.nome)}
           </div>
         )
       })}
-
-      {erro && !apagando && <p className="erro">{erro}</p>}
     </div>
   )
 }

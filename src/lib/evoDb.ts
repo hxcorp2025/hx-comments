@@ -14,7 +14,7 @@ export interface EvoInstancia {
   perfil: string | null
   foto_url: string | null
   qr_base64: string | null // só vem preenchido enquanto o QR é válido
-  qr_fresco: boolean
+  qr_fresco: boolean | null // NULL quando qr_em é nulo (comparação com NULL)
   pareamento: string | null
   proxy_ativo: boolean
   proxy_host: string | null
