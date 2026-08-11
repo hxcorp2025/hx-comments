@@ -30,6 +30,12 @@ export interface WaMsg {
   corpo: string
   ts: string
   operador: string | null
+  // mídia (quando a mensagem é foto/áudio/vídeo/figurinha/documento)
+  midia_status: 'pendente' | 'baixando' | 'ok' | 'erro' | 'vencido' | null
+  midia_path: string | null
+  midia_mime: string | null
+  midia_caption: string | null
+  midia_nome: string | null
 }
 
 export interface WaRegra {

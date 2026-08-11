@@ -5,6 +5,62 @@ import {
   type WaConversa, type WaMsg, type WaRegra, type WaEnviando, type WaFalha,
 } from '../lib/waDb'
 import { traduzErro } from '../lib/db'
+import { sb } from '../lib/supabase'
+
+// placeholder "(image)" da fila vira rótulo legível
+const MIDIA_ROTULO: Record<string, string> = {
+  '(image)': '📷 Foto', '(sticker)': '💟 Figurinha', '(audio)': '🎙️ Áudio',
+  '(video)': '🎬 Vídeo', '(document)': '📄 Documento', '(reaction)': '👍 Reação',
+  '(unsupported)': '(mensagem não suportada)',
+}
+
+// arquivo mora no bucket PRIVADO wa-media; o navegador só enxerga via URL assinada
+// de 1h, e só operador logado consegue gerar (política do storage)
+function MidiaMsg({ m }: { m: WaMsg }) {
+  const [url, setUrl] = useState<string | null>(null)
+  const [falhou, setFalhou] = useState(false)
+  useEffect(() => {
+    if (m.midia_status !== 'ok' || !m.midia_path) return
+    // painel fica aberto o dia todo: renova a URL assinada aos 50 min (validade 1h)
+    // e um blip de rede não deixa a mídia quebrada pra sempre
+    let vivo = true
+    const gerar = () => sb.storage.from('wa-media')
+      .createSignedUrl(m.midia_path!, 3600,
+        m.tipo === 'document' ? { download: m.midia_nome ?? true } : undefined)
+      .then(({ data, error }) => {
+        if (!vivo) return
+        if (error || !data) setFalhou(true)
+        else { setFalhou(false); setUrl(data.signedUrl) }
+      })
+      .catch(() => { if (vivo) setFalhou(true) })
+    gerar()
+    const t = setInterval(gerar, 50 * 60 * 1000)
+    return () => { vivo = false; clearInterval(t) }
+  }, [m.midia_status, m.midia_path])
+
+  if (m.midia_status !== 'ok') {
+    return <i className="didatica">{m.midia_status === 'erro' || m.midia_status === 'vencido'
+      ? '⚠️ mídia indisponível' : '⏳ mídia chegando (até 1 min)…'}</i>
+  }
+  if (falhou) return <i className="didatica">⚠️ não consegui abrir a mídia</i>
+  if (!url) return <i className="didatica">abrindo…</i>
+  return (
+    <span style={{ display: 'inline-block', maxWidth: 280, verticalAlign: 'top' }}>
+      {(m.tipo === 'image' || m.tipo === 'sticker') && (
+        <a href={url} target="_blank" rel="noreferrer">
+          <img src={url} alt={m.midia_caption ?? 'imagem recebida'}
+            style={{ maxWidth: m.tipo === 'sticker' ? 120 : 240, borderRadius: 8, display: 'block' }} />
+        </a>
+      )}
+      {m.tipo === 'audio' && <audio controls src={url} style={{ maxWidth: 280 }} />}
+      {m.tipo === 'video' && <video controls src={url} style={{ maxWidth: 280, borderRadius: 8 }} />}
+      {m.tipo === 'document' && (
+        <a href={url} target="_blank" rel="noreferrer">📄 {m.midia_nome ?? 'documento'}</a>
+      )}
+      {m.midia_caption && <span style={{ display: 'block', marginTop: 4 }}>{m.midia_caption}</span>}
+    </span>
+  )
+}
 
 type Estado = 'carregando' | 'ok' | 'erro'
 
@@ -202,7 +258,7 @@ export default function Whats({ admin, onContagem }: { admin: boolean; onContage
                 </span>
               </div>
 
-              <p style={{ margin: '8px 0', whiteSpace: 'pre-wrap' }}>{c.ultima_mensagem}</p>
+              <p style={{ margin: '8px 0', whiteSpace: 'pre-wrap' }}>{MIDIA_ROTULO[c.ultima_mensagem] ?? c.ultima_mensagem}</p>
               <p className="didatica" style={{ margin: 0 }}>
                 esperando há {c.esperando_h.toFixed(1)} h
               </p>
@@ -233,7 +289,7 @@ export default function Whats({ admin, onContagem }: { admin: boolean; onContage
                       opacity: m.direcao === 'out' ? 0.85 : 1,
                     }}>
                       <span className="pill">{m.direcao === 'out' ? (m.operador ?? 'nós') : c.cliente}</span>{' '}
-                      {m.corpo}
+                      {m.midia_path ? <MidiaMsg m={m} /> : (MIDIA_ROTULO[m.corpo] ?? m.corpo)}
                     </p>
                   ))}
 
