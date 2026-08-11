@@ -6,7 +6,7 @@
     <meta name="robots" content="noindex, nofollow" />
     <!-- A sessão fica em localStorage (default do supabase-js); a CSP fecha as saídas
          que um XSS usaria pra exfiltrar o refresh token. -->
-    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; connect-src 'self' https://ntavetjmfotlwmcgwsju.supabase.co; img-src 'self' data: https:; style-src 'self' 'unsafe-inline'; script-src 'self'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'" />
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; connect-src 'self' https://ntavetjmfotlwmcgwsju.supabase.co; img-src 'self' data: https:; media-src 'self' https://ntavetjmfotlwmcgwsju.supabase.co; style-src 'self' 'unsafe-inline'; script-src 'self'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'" />
     <title>Central de Comentários — HX</title>
     <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🗣️</text></svg>" />
   </head>
