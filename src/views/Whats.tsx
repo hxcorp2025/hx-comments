@@ -24,6 +24,8 @@ const rotuloMidia = (corpo: string) => {
 function MidiaMsg({ m }: { m: WaMsg }) {
   const [url, setUrl] = useState<string | null>(null)
   const [falhou, setFalhou] = useState(false)
+  // áudio do WhatsApp é ogg/opus: iPhone/Safari não toca (Chrome/Android sim)
+  const [naoToca, setNaoToca] = useState(false)
   useEffect(() => {
     if (m.midia_status !== 'ok' || !m.midia_path) return
     // painel fica aberto o dia todo: renova a URL assinada aos 50 min (validade 1h)
@@ -57,7 +59,10 @@ function MidiaMsg({ m }: { m: WaMsg }) {
             style={{ maxWidth: m.tipo === 'sticker' ? 120 : 240, borderRadius: 8, display: 'block' }} />
         </a>
       )}
-      {m.tipo === 'audio' && <audio controls src={url} style={{ maxWidth: 280 }} />}
+      {m.tipo === 'audio' && (naoToca
+        ? <i className="didatica">🎙️ Áudio no formato do WhatsApp — este navegador não toca
+            (iPhone/Safari). Abre no Chrome do computador ou Android.</i>
+        : <audio controls src={url} style={{ maxWidth: 280 }} onError={() => setNaoToca(true)} />)}
       {m.tipo === 'video' && <video controls src={url} style={{ maxWidth: 280, borderRadius: 8 }} />}
       {m.tipo === 'document' && (
         <a href={url} target="_blank" rel="noreferrer">📄 {m.midia_nome ?? 'documento'}</a>
