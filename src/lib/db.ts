@@ -153,6 +153,17 @@ export const regraDm = (id: number, respostas: string[] | null) =>
 export const regraRespostasIg = (id: number, respostas: string[] | null) =>
   rpc('mod_regra_respostas_ig', { p_id: id, p_respostas: respostas })
 
+// palavras bloqueadas do TikTok (nível de conta; escrita vai por fila, aplica em ~1 min)
+export interface TtBwEstado {
+  ok: boolean
+  erro?: string
+  palavras?: string[]
+  pendentes?: { acao: 'create' | 'delete'; palavras: string[]; status: string; erro: string | null }[]
+}
+export const ttBwList = () => rpc('mod_tt_bw_list', {}) as Promise<TtBwEstado>
+export const ttBwSolicitar = (acao: 'create' | 'delete', palavras: string[]) =>
+  rpc('mod_tt_bw_solicitar', { p_acao: acao, p_palavras: palavras }) as Promise<{ ok: boolean; erro?: string }>
+
 async function rpc(fn: string, args: Record<string, unknown>) {
   const { data, error } = await sb.rpc(fn, args)
   if (error) throw new Error(traduzErro(error.message))

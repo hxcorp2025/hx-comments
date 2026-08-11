@@ -1,6 +1,6 @@
 import { useEffect, useState, useCallback } from 'react'
 import type { Regra } from '../lib/types'
-import { listRegras, regraPreview, regraUpsert, regraPromover, regraToggle, regraRespostas, regraDm, regraRespostasIg, traduzErro } from '../lib/db'
+import { listRegras, regraPreview, regraUpsert, regraPromover, regraToggle, regraRespostas, regraDm, regraRespostasIg, ttBwList, ttBwSolicitar, traduzErro } from '../lib/db'
 
 interface Preview { matches: number; total: number; pct: number; amostra: string[] }
 
@@ -359,6 +359,88 @@ export default function Regras() {
           )}
         </div>
       ))}
+
+      <BlockedTikTok />
+    </div>
+  )
+}
+
+// ===== Palavras bloqueadas do TikTok (nível de conta — segura o comentário ANTES de publicar) =====
+function BlockedTikTok() {
+  const [palavras, setPalavras] = useState<string[]>([])
+  const [pendentes, setPendentes] = useState<{ acao: string; palavras: string[]; status: string; erro: string | null }[]>([])
+  const [novo, setNovo] = useState('')
+  const [erro, setErro] = useState('')
+  const [ocupado, setOcupado] = useState(false)
+
+  const carregar = useCallback(() => {
+    ttBwList().then((r) => {
+      if (!r.ok) { setErro(r.erro ?? 'não consegui carregar'); return }
+      setPalavras(r.palavras ?? [])
+      setPendentes(r.pendentes ?? [])
+    }).catch((e) => setErro(traduzErro((e as Error).message)))
+  }, [])
+  useEffect(carregar, [carregar])
+
+  async function pedir(acao: 'create' | 'delete', lista: string[]) {
+    if (ocupado) return
+    setErro('')
+    setOcupado(true)
+    try {
+      const r = await ttBwSolicitar(acao, lista)
+      if (!r.ok) throw new Error(r.erro ?? 'falhou')
+      if (acao === 'create') setNovo('')
+      carregar()
+    } catch (e) { setErro((e as Error).message) }
+    finally { setOcupado(false) }
+  }
+
+  return (
+    <div className="card" style={{ marginTop: 24 }}>
+      <b>🚫 TikTok — palavras bloqueadas</b>
+      <p className="didatica" style={{ margin: '6px 0 10px' }}>
+        Vale pra conta INTEIRA de anúncios do TikTok (pega Smart+): comentário com uma dessas
+        palavras é segurado <b>antes de aparecer pro público</b>. Mudanças aplicam em até 1 minuto.
+        Só o admin adiciona/remove — é a conta do cliente.
+      </p>
+
+      {erro && <div className="aviso" role="alert">{erro}</div>}
+
+      <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 10 }}>
+        <input style={{ flex: 1, minWidth: 220 }} value={novo} disabled={ocupado}
+          placeholder="Palavras separadas por vírgula (ex.: golpe, fraude, calote)"
+          onChange={(e) => setNovo(e.target.value)} />
+        <button className="btn primario" disabled={ocupado || novo.trim().length < 2}
+          onClick={() => pedir('create', novo.split(/[,;\n]/))}>
+          Bloquear
+        </button>
+      </div>
+
+      {pendentes.length > 0 && (
+        <p className="didatica" style={{ margin: '0 0 8px' }}>
+          ⏳ {pendentes.map((p, i) => (
+            <span key={i}>
+              {p.status === 'erro' ? '⚠️ falhou' : p.status === 'feito' ? '✓' : 'aplicando'}
+              {' '}{p.acao === 'create' ? 'bloquear' : 'liberar'}: {p.palavras.join(', ')}
+              {p.erro ? ` (${p.erro})` : ''}{i < pendentes.length - 1 ? ' · ' : ''}
+            </span>
+          ))}
+        </p>
+      )}
+
+      {palavras.length === 0 ? (
+        <p className="didatica" style={{ margin: 0 }}>Nenhuma palavra bloqueada ainda.</p>
+      ) : (
+        <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+          {palavras.map((p) => (
+            <span key={p} className="pill" style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+              {p}
+              <button className="btn" style={{ minHeight: 20, padding: '0 6px' }} disabled={ocupado}
+                title="Liberar a palavra" onClick={() => pedir('delete', [p])}>✕</button>
+            </span>
+          ))}
+        </div>
+      )}
     </div>
   )
 }

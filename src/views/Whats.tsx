@@ -148,7 +148,7 @@ export default function Whats({ admin, onContagem }: { admin: boolean; onContage
   }
 
   // Meta aceita por link: imagem JPEG/PNG · áudio aac/mp4/mpeg/amr/ogg · resto vai como documento
-  const AUDIO_OK = ['audio/aac', 'audio/mp4', 'audio/mpeg', 'audio/amr', 'audio/ogg', 'audio/ogg; codecs=opus']
+  const AUDIO_OK = ['audio/aac', 'audio/mp4', 'audio/x-m4a', 'audio/mpeg', 'audio/amr', 'audio/ogg', 'audio/ogg; codecs=opus']
   const MAX_MB: Record<'image' | 'audio' | 'document', number> = { image: 5, audio: 16, document: 100 }
   function tipoDoAnexo(f: File): { tipo: 'image' | 'audio' | 'document'; erro?: string } {
     if (f.type === 'image/jpeg' || f.type === 'image/png') return { tipo: 'image' }
@@ -183,10 +183,11 @@ export default function Whats({ admin, onContagem }: { admin: boolean; onContage
           phoneId: c.phone_id, waId: c.wa_id, path, tipo,
           mime: anexo.type, nome: anexo.name, caption: legenda,
         })
+        // mídia já foi: limpa ANTES do texto separado, senão retry re-enviaria o áudio
+        setAnexo(null)
         if (tipo === 'audio' && texto.trim().length >= 2) {
           await waResponder(c.phone_id, c.wa_id, texto.trim())
         }
-        setAnexo(null)
       } else {
         await waResponder(c.phone_id, c.wa_id, texto.trim())
       }
@@ -371,7 +372,7 @@ export default function Whats({ admin, onContagem }: { admin: boolean; onContage
                           style={{ cursor: 'pointer', display: 'flex', alignItems: 'center' }}>
                           📎
                           <input type="file"
-                            accept="image/png,image/jpeg,audio/ogg,audio/mpeg,audio/mp4,audio/aac,audio/amr,application/pdf"
+                            accept="image/png,image/jpeg,audio/ogg,audio/mpeg,audio/mp4,audio/x-m4a,audio/aac,audio/amr,application/pdf"
                             style={{ display: 'none' }} disabled={ocupado}
                             onChange={(e) => { setAnexo(e.target.files?.[0] ?? null); e.target.value = '' }} />
                         </label>
