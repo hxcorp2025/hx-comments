@@ -1,6 +1,6 @@
 import { useEffect, useState, useCallback } from 'react'
 import type { Regra } from '../lib/types'
-import { listRegras, regraPreview, regraUpsert, regraPromover, regraToggle, regraRespostas, regraDm, traduzErro } from '../lib/db'
+import { listRegras, regraPreview, regraUpsert, regraPromover, regraToggle, regraRespostas, regraDm, regraRespostasIg, traduzErro } from '../lib/db'
 
 interface Preview { matches: number; total: number; pct: number; amostra: string[] }
 
@@ -83,6 +83,42 @@ export default function Regras() {
     const versoes = draftDm.map((d) => d.trim()).filter((d) => d.length >= 2)
     if (versoes.length === 0) { setErro('escreva pelo menos 1 DM (mín. 2 caracteres)'); return }
     await agir(async () => { await regraDm(id, versoes); fecharEditorDm(id) })
+  }
+
+  const [editandoIg, setEditandoIg] = useState<number | null>(null)
+  const [draftIg, setDraftIg] = useState<string[]>(['', '', ''])
+
+  function abrirEditorIg(r: Regra) {
+    setErro('')
+    setEditandoIg(r.id)
+    const salvo = localStorage.getItem('hx_rascunho_ig_' + r.id)
+    if (salvo) {
+      try {
+        const arr = JSON.parse(salvo) as string[]
+        setDraftIg([arr[0] ?? '', arr[1] ?? '', arr[2] ?? ''])
+        return
+      } catch { /* rascunho corrompido: cai pro valor salvo */ }
+    }
+    const v = r.respostas_auto_ig ?? []
+    setDraftIg([v[0] ?? '', v[1] ?? '', v[2] ?? ''])
+  }
+
+  useEffect(() => {
+    if (editandoIg === null) return
+    const k = 'hx_rascunho_ig_' + editandoIg
+    if (draftIg.some((d) => d.trim())) localStorage.setItem(k, JSON.stringify(draftIg))
+    else localStorage.removeItem(k)
+  }, [editandoIg, draftIg])
+
+  function fecharEditorIg(id: number) {
+    localStorage.removeItem('hx_rascunho_ig_' + id)
+    setEditandoIg(null)
+  }
+
+  async function salvarIg(id: number) {
+    const versoes = draftIg.map((d) => d.trim()).filter((d) => d.length >= 2)
+    if (versoes.length === 0) { setErro('escreva pelo menos 1 versão (mín. 2 caracteres)'); return }
+    await agir(async () => { await regraRespostasIg(id, versoes); fecharEditorIg(id) })
   }
 
   const carregar = useCallback(() => {
@@ -192,6 +228,9 @@ export default function Regras() {
             {r.dm_respostas && (
               <span className="pill ig">DM no IG ({r.dm_respostas.length})</span>
             )}
+            {r.respostas_auto_ig && (
+              <span className="pill ig">IG sem link ({r.respostas_auto_ig.length})</span>
+            )}
             {!r.ativa && <span className="pill neutro">desligada</span>}
             <span>por {r.criada_por}</span>
           </div>
@@ -229,6 +268,15 @@ export default function Regras() {
               <>
                 <button className="btn" onClick={() => abrirEditorDm(r)}>Editar DM</button>
                 <button className="btn" onClick={() => agir(() => regraDm(r.id, null))}>Parar DM</button>
+              </>
+            )}
+            {r.respostas_auto && !r.respostas_auto_ig && editandoIg !== r.id && (
+              <button className="btn" onClick={() => abrirEditorIg(r)}>Versão IG (sem link)</button>
+            )}
+            {r.respostas_auto_ig && editandoIg !== r.id && (
+              <>
+                <button className="btn" onClick={() => abrirEditorIg(r)}>Editar versão IG</button>
+                <button className="btn" onClick={() => agir(() => regraRespostasIg(r.id, null))}>Usar base no IG</button>
               </>
             )}
           </div>
@@ -282,6 +330,31 @@ export default function Regras() {
                 </button>
               </div>
               {erro && editandoDm === r.id && <p className="erro">{erro}</p>}
+            </div>
+          )}
+
+          {editandoIg === r.id && (
+            <div style={{ marginTop: 10, display: 'flex', flexDirection: 'column', gap: 8 }}>
+              <div className="didatica">
+                <b>Versão IG (sem link):</b> no Instagram, link em comentário não clica e a URL crua
+                fica feia. Estas versões substituem as respostas base SÓ no IG — sem link (o link
+                clicável vai no DM). No Facebook segue valendo a versão base, com link.
+              </div>
+              {[0, 1, 2].map((i) => (
+                <textarea key={i} rows={2} maxLength={500}
+                  placeholder={`versão IG ${i + 1}${i > 0 ? ' (opcional)' : ''} — sem link`}
+                  value={draftIg[i]}
+                  onChange={(e) => setDraftIg((d) => d.map((v, j) => (j === i ? e.target.value : v)))} />
+              ))}
+              <div className="acoes">
+                <button className="btn primario" disabled={ocupado} onClick={() => salvarIg(r.id)}>
+                  Salvar versão IG
+                </button>
+                <button className="btn" disabled={ocupado} onClick={() => fecharEditorIg(r.id)}>
+                  Cancelar
+                </button>
+              </div>
+              {erro && editandoIg === r.id && <p className="erro">{erro}</p>}
             </div>
           )}
         </div>

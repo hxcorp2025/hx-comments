@@ -42,6 +42,7 @@ export interface Regra {
   promovida_em: string | null
   respostas_auto: string[] | null
   dm_respostas: string[] | null
+  respostas_auto_ig: string[] | null
 }
 
 export interface Template {

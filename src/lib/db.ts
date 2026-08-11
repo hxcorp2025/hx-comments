@@ -150,6 +150,8 @@ export const regraRespostas = (id: number, respostas: string[] | null) =>
   rpc('mod_regra_respostas', { p_id: id, p_respostas: respostas })
 export const regraDm = (id: number, respostas: string[] | null) =>
   rpc('mod_regra_dm', { p_id: id, p_respostas: respostas })
+export const regraRespostasIg = (id: number, respostas: string[] | null) =>
+  rpc('mod_regra_respostas_ig', { p_id: id, p_respostas: respostas })
 
 async function rpc(fn: string, args: Record<string, unknown>) {
   const { data, error } = await sb.rpc(fn, args)
