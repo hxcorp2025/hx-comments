@@ -58,6 +58,7 @@ export default function Instancias({ admin }: { admin: boolean }) {
     const liga = () => {
       clearInterval(t)
       if (document.hidden) return
+      carregar() // volta pra aba: busca na hora, não espera o próximo tique
       t = setInterval(carregar, trabalhando ? 3000 : 20000) as unknown as number
     }
     liga()
@@ -117,7 +118,7 @@ export default function Instancias({ admin }: { admin: boolean }) {
         <div className="card">
           <h3 style={{ marginBottom: 8 }}>Conectar um número novo</h3>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-            <label htmlFor="evo-nome" className="didatica">Nome curto, sem espaço</label>
+            <label htmlFor="evo-nome" className="didatica" style={{ margin: 0 }}>Nome curto, sem espaço</label>
             <input
               id="evo-nome"
               placeholder="ex.: rox-disparo-01"
@@ -129,7 +130,7 @@ export default function Instancias({ admin }: { admin: boolean }) {
                   .replace(/^[^a-z0-9]+/, ''), // o banco exige começar por letra ou número
               )}
             />
-            <label htmlFor="evo-rotulo" className="didatica">Rótulo pra vocês lembrarem</label>
+            <label htmlFor="evo-rotulo" className="didatica" style={{ margin: 0 }}>Rótulo pra vocês lembrarem</label>
             <input
               id="evo-rotulo"
               placeholder="ex.: chip do Peterson, comunidades VIP"
@@ -193,7 +194,7 @@ export default function Instancias({ admin }: { admin: boolean }) {
                   No celular: <b>WhatsApp → Configurações → Aparelhos conectados → Conectar
                   aparelho</b>, e aponte pra este código. Ele vale mais ou menos 1 minuto; se
                   vencer, é só tocar em "Gerar QR" de novo. Depois de ler, o painel confirma
-                  sozinho em alguns segundos.
+                  sozinho em até 1 minuto (ou toque em "Conferir estado" pra saber na hora).
                 </p>
                 <img
                   src={i.qr_base64}
