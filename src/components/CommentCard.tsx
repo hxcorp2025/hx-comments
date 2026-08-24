@@ -133,8 +133,8 @@ export default function CommentCard({ c, templates, admin, travado, selecionado,
 
       {respondendo && (
         <div style={{ marginTop: 10, display: 'flex', flexDirection: 'column', gap: 8 }}>
-          {templates.length === 0 && !admin && (
-            <p className="didatica">Nenhum template aprovado ainda — fala com o Matheus.</p>
+          {templates.length === 0 && (
+            <p className="didatica">Nenhum template ainda — qualquer operador pode criar na aba Templates.</p>
           )}
           <select value={templateId} onChange={(e) => setTemplateId(e.target.value ? Number(e.target.value) : '')}>
             <option value="">escolher template aprovado…</option>

@@ -90,6 +90,13 @@ export async function listTemplates(): Promise<Template[]> {
   return data as Template[]
 }
 
+// aba Templates: mostra também os desligados (a policy de SELECT já cobre todos pro operador)
+export async function listTemplatesTodos(): Promise<Template[]> {
+  const { data, error } = await sb.from('mod_templates').select('*').order('id')
+  if (error) throw error
+  return data as Template[]
+}
+
 export async function listLog(): Promise<LogRow[]> {
   const { data, error } = await sb.from('mod_log').select('*').order('ts', { ascending: false }).limit(300)
   if (error) throw error
@@ -141,6 +148,10 @@ export const ocultarLote = (ids: number[]) =>
 export const classificar = (id: number, classe: Classe) => rpc('mod_classificar', { p_id: id, p_classe: classe })
 export const responder = (id: number, templateId: number | null, texto: string | null) =>
   rpc('mod_responder', { p_id: id, p_template_id: templateId, p_texto: texto })
+export const templateUpsert = (id: number | null, titulo: string, texto: string) =>
+  rpc('mod_template_upsert', { p_id: id, p_titulo: titulo, p_texto: texto })
+export const templateToggle = (id: number, ativa: boolean) =>
+  rpc('mod_template_toggle', { p_id: id, p_ativa: ativa })
 export const regraPreview = (termo: string) => rpc('mod_regra_preview', { p_termo: termo })
 export const regraUpsert = (id: number | null, termo: string, descricao: string, plataformas: string[]) =>
   rpc('mod_regra_upsert', { p_id: id, p_termo: termo, p_descricao: descricao, p_plataformas: plataformas })

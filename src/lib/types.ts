@@ -50,6 +50,8 @@ export interface Template {
   titulo: string
   texto: string
   ativa: boolean
+  criado_por: string | null
+  criado_em: string | null
 }
 
 export interface LogRow {
