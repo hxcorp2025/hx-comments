@@ -60,7 +60,7 @@ export default function Insights() {
       <div className="scroll-x">
         <table className="lista">
           <thead>
-            <tr><th>Publicação</th><th>Anúncios</th><th>Gasto 7d</th><th>Coments</th><th>Negativos</th><th>%</th></tr>
+            <tr><th>Publicação</th><th className="num">Anúncios</th><th className="num">Gasto 7d</th><th className="num">Coments</th><th className="num">Negativos</th><th className="num">%</th></tr>
           </thead>
           <tbody>
             {posts.map((p) => (
@@ -71,11 +71,11 @@ export default function Insights() {
                     : (p.caption ?? p.post_id)}
                   <div style={{ color: 'var(--muted)', fontSize: 12 }}>{p.plataforma}</div>
                 </td>
-                <td>{p.ads}</td>
-                <td>R$ {Number(p.gasto_7d).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</td>
-                <td>{p.comentarios_7d}</td>
-                <td>{p.negativos_7d}</td>
-                <td style={{ color: p.pct_negativo > 15 ? 'var(--red)' : 'inherit' }}>{p.pct_negativo}%</td>
+                <td className="num">{p.ads}</td>
+                <td className="num">R$ {Number(p.gasto_7d).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</td>
+                <td className="num">{p.comentarios_7d}</td>
+                <td className="num">{p.negativos_7d}</td>
+                <td className="num" style={{ color: p.pct_negativo > 15 ? 'var(--critico)' : 'inherit' }}>{p.pct_negativo}%</td>
               </tr>
             ))}
             {posts.length === 0 && <tr><td colSpan={6} style={{ color: 'var(--muted)' }}>sem dados ainda</td></tr>}

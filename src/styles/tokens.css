@@ -1,0 +1,119 @@
+/* ============================================================
+   Central · sistema de design HX (painel escuro premium)
+   Origem: DESIGN.md do Painel Comercial JA (aprovado 02/09/2026)
+   github.com/hxcorp2025/ja-painel-comercial/blob/main/docs/DESIGN.md
+
+   O que muda por app: a cor de acao e a cor da malha do fundo.
+   Familia HX: JA = vermelho #ff1f2d · SEND = violeta #7c5cff ·
+   CENTRAL = ciano #12c8c0. Escada de superficies, hairlines,
+   tipografia e cores de estado sao iguais nas tres.
+
+   A segunda metade mapeia os nomes de token antigos da Central
+   (--panel, --panel-2, --accent, --radius) para este sistema, e e
+   o que permite trocar a lingua sem renomear os 57 seletores nem
+   tocar nos var(--) que vivem dentro do JSX.
+   ============================================================ */
+
+:root {
+  /* --- escada de superficies (vies frio-neutro; nunca preto puro) */
+  --canvas: #08090b;
+  --surface-sunken: #0b0c0f;
+  --surface-1: #0e1013;
+  --surface-2: #14161a;
+  --surface-3: #1a1d21;
+
+  /* --- hairlines: a assinatura do acabamento */
+  --hair: rgba(255, 255, 255, 0.07);
+  --hair-strong: rgba(255, 255, 255, 0.14);
+  --hair-lit: rgba(255, 255, 255, 0.10);   /* fio de luz no topo do cartao */
+
+  /* --- tinta */
+  --text: #f2f3f5;
+  --muted: #9aa0a8;
+  --dim: #5f6670;
+
+  /* --- marca da Central: ciano eletrico (evolucao do teal #46b5a4) */
+  --brand: #12c8c0;
+  --brand-hover: #2ad9d1;
+  --brand-text: #5fe3dc;                    /* ciano com contraste para TEXTO no escuro */
+  --brand-deep: #0fb0a9;                    /* base do gradiente do botao */
+  --brand-soft: rgba(18, 200, 192, 0.10);
+  --brand-glow: rgba(18, 200, 192, 0.22);
+  --brand-ink: #04211f;                     /* tinta escura sobre o ciano: 8,1:1 */
+
+  /* --- estado (forma + cor, nunca so cor)
+     O verde de "deu certo" foi empurrado para #34d17f e a serie teal saiu de
+     cena: num app cheio de status, marca e estado bom nao podem se confundir. */
+  --ok: #34d17f;        --ok-soft: rgba(52, 209, 127, 0.10);
+  --atencao: #f5a524;   --atencao-soft: rgba(245, 165, 36, 0.10);
+  --critico: #ff4d4d;   --critico-soft: rgba(255, 77, 77, 0.10);
+  --info: #6fa8ff;      --info-soft: rgba(111, 168, 255, 0.10);
+
+  /* --- series (aqui servem as pills de plataforma, nao grafico: a Central
+     nao tem nenhum) */
+  --serie-1: #5fe3dc;
+  --serie-2: #6fa8ff;
+  --serie-3: #34d17f;
+  --serie-4: #f5a524;
+  /* mesma numeracao do Send: token com o mesmo nome tem que ser a mesma cor nos
+     dois irmaos, senao um trecho copiado de la muda de cor em silencio aqui */
+  --serie-5: #ff8fa3;
+  --serie-6: #c79bf0;
+
+  /* --- tipografia (self-host: fonts.css; a CSP e default-src 'self') */
+  --display: 'Bricolage Grotesque', 'Geist', system-ui, 'Segoe UI', sans-serif;
+  --body: 'Geist', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  --mono: 'Geist Mono', ui-monospace, 'Cascadia Mono', Menlo, monospace;
+
+  /* --- forma e ritmo */
+  --r-sm: 6px;
+  --r: 10px;
+  --r-lg: 14px;
+  --r-pill: 999px;
+  --lateral: 248px;
+  --sh-float: 0 12px 34px -8px rgba(0, 0, 0, 0.55), 0 2px 8px rgba(0, 0, 0, 0.35);
+  --ease: cubic-bezier(0.2, 0.7, 0.2, 1);
+  --dur: 160ms;
+
+  /* --- vidro (so no chrome: lateral, topo, login) */
+  --vidro-bg: rgba(14, 16, 19, 0.62);
+  --vidro-blur: 14px;
+
+  color-scheme: dark;
+}
+
+/* ============================================================
+   Ponte com os nomes antigos da Central. --text e --muted ja
+   tinham o nome do sistema, entao so trocaram de valor.
+   ============================================================ */
+:root {
+  --bg: var(--canvas);
+  --panel: var(--surface-1);
+  --panel-2: var(--surface-2);
+  --line: var(--hair);
+  --accent: var(--brand);
+  --red: var(--critico);
+  --orange: var(--atencao);
+  --blue: var(--info);
+  --green: var(--ok);
+  --radius: var(--r-lg);
+  /* Whats.tsx pedia estes dois, que nunca existiram: caia sempre no plano B */
+  --cinza: var(--muted);
+  --linha: var(--hair);
+}
+
+/* Malha atmosferica: a profundidade vem de luz, nao de sombra.
+   Fixa e composta uma vez; nao repinta ao rolar. */
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(900px 600px at 8% -10%, rgba(18, 200, 192, 0.14), transparent 60%),
+    radial-gradient(700px 500px at 100% 105%, rgba(255, 255, 255, 0.035), transparent 60%),
+    radial-gradient(1200px 800px at 50% 50%, rgba(255, 255, 255, 0.012), transparent 70%);
+}
+
+#root { position: relative; z-index: 1; }

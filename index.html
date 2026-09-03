@@ -7,10 +7,22 @@
     <!-- A sessão fica em localStorage (default do supabase-js); a CSP fecha as saídas
          que um XSS usaria pra exfiltrar o refresh token. -->
     <meta http-equiv="Content-Security-Policy" content="default-src 'self'; connect-src 'self' https://ntavetjmfotlwmcgwsju.supabase.co; img-src 'self' data: https:; media-src 'self' https://ntavetjmfotlwmcgwsju.supabase.co; style-src 'self' 'unsafe-inline'; script-src 'self'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'" />
-    <title>Central de Comentários — HX</title>
-    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🗣️</text></svg>" />
+    <meta name="theme-color" content="#08090b" />
+    <title>Central · HX</title>
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><defs><linearGradient id='g' x1='0' y1='0' x2='0' y2='1'><stop offset='0' stop-color='%232ad9d1'/><stop offset='1' stop-color='%230fb0a9'/></linearGradient></defs><rect width='32' height='32' rx='7' fill='url(%23g)'/><path d='M9 10h14M9 15h10M9 20h6' stroke='%23042120' stroke-width='2.4' stroke-linecap='round'/></svg>" />
+    <link rel="preload" as="font" type="font/woff2" href="/assets/fonts/geist-400-latin.woff2" crossorigin />
+    <link rel="preload" as="font" type="font/woff2" href="/assets/fonts/bricolage-600-latin.woff2" crossorigin />
+    <link rel="preload" as="font" type="font/woff2" href="/assets/fonts/geist-mono-400-latin.woff2" crossorigin />
   </head>
   <body>
+    <!-- Ondulacao do vidro liquido. Entra por cascata so onde o navegador aceita
+         backdrop-filter: url() e so no desktop (ver o @media em index.css). -->
+    <svg width="0" height="0" style="position:absolute" aria-hidden="true">
+      <filter id="vidro-liquido" x="-10%" y="-10%" width="120%" height="120%" color-interpolation-filters="sRGB">
+        <feTurbulence type="fractalNoise" baseFrequency="0.006 0.009" numOctaves="2" seed="7" result="ruido" />
+        <feDisplacementMap in="SourceGraphic" in2="ruido" scale="14" xChannelSelector="R" yChannelSelector="G" />
+      </filter>
+    </svg>
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
   </body>

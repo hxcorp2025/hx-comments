@@ -86,7 +86,7 @@ export default function Fila({ templates, admin, onContagem }: {
       }
       setProgresso(falhas.length > 0
         ? `${ok} registrados · ${falhas.length} falharam (marcados em vermelho)`
-        : `${ok} registrados — saem da plataforma em até 1 min`)
+        : `${ok} registrados, saem da plataforma em até 1 min`)
       setTimeout(() => setProgresso(''), 6000)
     } finally {
       setOcupado(false)
@@ -109,18 +109,18 @@ export default function Fila({ templates, admin, onContagem }: {
     <div style={{ paddingBottom: sel.size > 0 || progresso ? 100 : 0 }}>
       <p className="didatica">
         Ordem da fila: golpe → reclamação → dúvida de lead. "Está ok" libera e o motor nunca mais mexe nele.
-        A ação sai na plataforma em até 1 minuto — o card avisa se falhar.
+        A ação sai na plataforma em até 1 minuto, o card avisa se falhar.
       </p>
 
       {falhas.length > 0 && (
         <div className="aviso" role="alert">
-          ⚠️ {falhas.length} ação(ões) não foram aceitas pela plataforma — os comentários continuam como estavam lá.
+          ⚠️ {falhas.length} ação(ões) não foram aceitas pela plataforma, os comentários continuam como estavam lá.
           Estão marcados em vermelho abaixo (ou na aba da plataforma).
         </div>
       )}
 
       {fila.length === 0 ? (
-        <div className="vazio"><span className="emoji">✅</span>Fila limpa — nenhum comentário esperando revisão.</div>
+        <div className="vazio"><span className="emoji">✅</span>Fila limpa, nenhum comentário esperando revisão.</div>
       ) : (
         fila.map(comEstadoReal).map((c) => (
           <CommentCard key={c.id} c={c} templates={templates} admin={admin} travado={ocupado}

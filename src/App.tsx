@@ -119,7 +119,7 @@ export default function App() {
         </span>
       </header>
 
-      <nav className="tabs" aria-label="abas">
+      <nav className="tabs vidro" aria-label="abas">
         {ABAS.map(({ id, rotulo, Icone }) => (
           <button key={id} className={aba === id ? 'on' : ''} onClick={() => setAba(id)}
             aria-current={aba === id ? 'page' : undefined}>

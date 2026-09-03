@@ -26,7 +26,7 @@ export default function AvisoVersao() {
   if (!nova) return null
   return (
     <button className="aviso-versao" onClick={() => location.reload()}>
-      ✨ Nova versão disponível — tocar para atualizar
+      ✨ Nova versão disponível, tocar para atualizar
     </button>
   )
 }

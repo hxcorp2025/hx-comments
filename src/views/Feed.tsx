@@ -91,7 +91,7 @@ export default function Feed({ plataforma, templates, admin }: { plataforma: Pla
         ))}
       </div>
       {itens.length === 200 && (
-        <p className="didatica">Mostrando os 200 mais recentes — use os filtros ou a busca pra afunilar.</p>
+        <p className="didatica">Mostrando os 200 mais recentes, use os filtros ou a busca pra afunilar.</p>
       )}
     </div>
   )

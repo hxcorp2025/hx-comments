@@ -1,144 +1,361 @@
-/* Central de Comentários — dark, mobile-first, cards */
-:root {
-  --bg: #0f1214;
-  --panel: #171b1e;
-  --panel-2: #1e2429;
-  --line: #262d33;
-  --text: #e6e9ec;
-  --muted: #8b959e;
-  --accent: #46b5a4;
-  --red: #e5544b;
-  --orange: #e59b3c;
-  --blue: #5aa3e8;
-  --green: #56c271;
-  --radius: 12px;
-}
+/* ============================================================
+   Central de Comentarios - design system v2 (padrao HX)
+   Tokens e malha atmosferica: src/styles/tokens.css
+   Fontes self-hosted: src/styles/fonts.css
+   Origem do padrao: docs/DESIGN.md do Painel Comercial JA.
+
+   Mobile-first continua sendo a regra: quem modera comentario e
+   responde WhatsApp faz isso no celular, com o polegar. Abaixo de
+   1020px nada mudou de lugar (abas no rodape, alvo de 44px, margem
+   de seguranca do iPhone). Acima, o desktop finalmente ganha a
+   barra lateral, que e onde 9 abas espremidas numa linha incomodam.
+
+   Profundidade por escada de superficies e fio de 1px, nunca por
+   sombra grande. Vidro so no chrome: cartao de dado atras de
+   borrado fica ilegivel e custa GPU.
+   ============================================================ */
+
 * { box-sizing: border-box; margin: 0; }
-html, body { background: var(--bg); color: var(--text); }
+html, body { background: var(--canvas); color: var(--text); }
 body {
-  font: 15px/1.5 system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  font: 14.5px/1.55 var(--body);
+  font-feature-settings: 'ss03', 'cv11';
   -webkit-font-smoothing: antialiased;
   padding-bottom: env(safe-area-inset-bottom);
 }
-button { font: inherit; cursor: pointer; border: none; border-radius: 8px; }
+
+h1, h2, h3 {
+  font-family: var(--display);
+  font-weight: 600;
+  letter-spacing: -0.015em;
+  line-height: 1.15;
+  text-wrap: balance;
+}
+
+button { font: inherit; cursor: pointer; border: none; border-radius: var(--r-sm); }
 input, select, textarea {
   font: inherit; color: var(--text);
-  background: var(--panel-2); border: 1px solid var(--line);
-  border-radius: 8px; padding: 10px 12px;
+  background: var(--surface-sunken); border: 1px solid var(--hair-strong);
+  border-radius: var(--r-sm); padding: 10px 12px;
+  transition: border-color var(--dur) var(--ease), box-shadow var(--dur) var(--ease);
 }
-input:focus, select:focus, textarea:focus, button:focus-visible {
-  outline: 2px solid var(--accent); outline-offset: 1px;
+input::placeholder, textarea::placeholder { color: var(--dim); }
+input:focus, select:focus, textarea:focus {
+  outline: none;
+  border-color: var(--brand-text);
+  box-shadow: 0 0 0 3px var(--brand-soft);
 }
-a { color: var(--blue); }
+button:focus-visible, a:focus-visible {
+  outline: 2px solid var(--brand-text); outline-offset: 2px; border-radius: 4px;
+}
+a { color: var(--brand-text); }
 
+/* Numero de TABELA em mono tabular: o sinal discreto de painel que conta. O
+   numero grande do KPI fica no display (DESIGN.md secao 3), definido em .kpi .num. */
+table.lista td.num { font-family: var(--mono); font-size: 12.75px; font-weight: 500; text-align: right; }
+table.lista th.num { text-align: right; }
+.kpi .num, table.lista td, .pill { font-variant-numeric: tabular-nums; font-feature-settings: 'tnum', 'ss03'; }
+
+/* ---------- vidro (SO no chrome: lateral, topo, login) ---------- */
+.vidro {
+  background: var(--vidro-bg);
+  backdrop-filter: blur(var(--vidro-blur)) saturate(150%);
+  -webkit-backdrop-filter: blur(var(--vidro-blur)) saturate(150%);
+  box-shadow: inset 0 1px 0 var(--hair-lit);
+}
+
+/* ---------- shell ---------- */
 .app { max-width: 860px; margin: 0 auto; padding: 12px 12px 90px; }
-.topo { display: flex; align-items: center; justify-content: space-between; padding: 6px 2px 14px; }
-.topo h1 { font-size: 18px; }
-.topo .quem { color: var(--muted); font-size: 13px; }
+.topo {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 10px; padding: 6px 2px 14px;
+}
+.topo h1 { font-size: 18px; letter-spacing: -0.02em; }
+.topo .quem { color: var(--muted); font-size: 13px; display: flex; align-items: center; gap: 6px; }
 
-/* tabs fixas embaixo no mobile (polegar), topo no desktop */
+/* ---------- abas ---------- */
+/* No celular ficam fixas embaixo, no alcance do polegar. 9 abas x 44px de alvo
+   minimo nao cabem em 360px, entao rolagem horizontal em vez de space-around:
+   nada sai da tela nem se sobrepoe. NAO usar flex-wrap: o padding-bottom do
+   .app e o bottom da .bulkbar estao calibrados pra barra de UMA linha. */
 .tabs {
   position: fixed; bottom: 0; left: 0; right: 0; z-index: 20;
-  /* 8 abas x 44px de alvo minimo = 352px, aperta em tela de 360px e estoura com a proxima aba.
-     Rolagem horizontal em vez de space-around: nada sai da tela nem se sobrepoe.
-     Nao usar flex-wrap: .app tem padding-bottom e .bulkbar tem bottom calibrados
-     pra barra de UMA linha. */
   display: flex; justify-content: flex-start;
   overflow-x: auto; scrollbar-width: none; -webkit-overflow-scrolling: touch;
-  background: var(--panel); border-top: 1px solid var(--line);
+  border-top: 1px solid var(--hair);
   padding: 6px 4px calc(6px + env(safe-area-inset-bottom));
 }
 .tabs::-webkit-scrollbar { display: none; }
 .tabs button {
   display: flex; flex-direction: column; align-items: center; gap: 2px;
-  flex: 0 0 auto;
-  background: none; color: var(--muted); font-size: 11px;
+  flex: 0 0 auto; position: relative;
+  background: none; color: var(--muted); font-size: 11px; font-weight: 500;
   padding: 6px 8px; min-width: 44px; min-height: 44px;
+  transition: color var(--dur) var(--ease), background var(--dur) var(--ease);
 }
-.tabs button.on { color: var(--accent); font-weight: 700; border-top: 2px solid var(--accent); margin-top: -2px; }
-@media (min-width: 720px) { .tabs button.on { border-top: none; border-bottom: 2px solid var(--accent); margin: 0 0 -1px; } }
+.tabs button:hover { color: var(--text); }
+.tabs button.on { color: var(--brand-text); font-weight: 600; border-top: 2px solid var(--brand); margin-top: -2px; }
 .tabs button:active { transform: scale(0.96); }
+
 @media (min-width: 720px) {
-  .tabs { position: sticky; top: 0; bottom: auto; justify-content: space-around; overflow-x: visible;
-          border-top: none; border-bottom: 1px solid var(--line); border-radius: var(--radius); margin-bottom: 14px; }
+  .tabs {
+    position: sticky; top: 0; bottom: auto; justify-content: space-around;
+    overflow-x: visible; border-top: none; border-bottom: 1px solid var(--hair);
+    border-radius: var(--radius); margin-bottom: 14px;
+  }
+  .tabs button.on { border-top: none; border-bottom: 2px solid var(--brand); margin: 0 0 -1px; }
   .app { padding-bottom: 20px; }
 }
 
-.card {
-  background: var(--panel); border: 1px solid var(--line);
-  border-radius: var(--radius); padding: 14px; margin-bottom: 10px;
+/* Acima de 1020px o desktop ganha barra lateral. A lateral sai do fluxo em vez
+   de virar coluna de grid: as views entram e saem do .app conforme a aba, e num
+   grid a lateral de 100vh esticaria a altura da primeira linha e empurraria o
+   conteudo pra baixo da dobra. Fora do fluxo, funciona com qualquer tela. */
+@media (min-width: 1160px) {
+  .app {
+    max-width: none; margin: 0;
+    /* a folga do topo mora no .app, nao no .topo: o primeiro filho e o aviso de
+       versao, que aparece a cada deploy e colava em y=0 */
+    padding: 20px 26px 48px calc(var(--lateral) + 26px);
+  }
+  .app > *:not(.tabs) { max-width: 1020px; margin-inline: auto; }
+  .app > .topo { padding: 0 2px 14px; }
+
+  .tabs {
+    position: fixed; left: 0; top: 0; bottom: 0; right: auto;
+    width: var(--lateral); z-index: 20;
+    flex-direction: column; justify-content: flex-start; gap: 2px;
+    overflow-y: auto; overflow-x: visible;
+    margin: 0; padding: 18px 10px;
+    border: none; border-right: 1px solid var(--hair); border-radius: 0;
+  }
+  .tabs button {
+    flex-direction: row; justify-content: flex-start; gap: 11px;
+    width: 100%; min-height: 38px; padding: 8px 11px;
+    font-size: 13.5px; border-radius: var(--r-sm); text-align: left;
+  }
+  .tabs button:hover { background: var(--surface-2); }
+  .tabs button.on {
+    background: var(--surface-2); border: none; margin: 0;
+    color: var(--text); font-weight: 600;
+  }
+  /* trilho de 2px que cresce, em vez de barra que aparece seca */
+  .tabs button::before {
+    content: ''; position: absolute; left: -10px; top: 6px; bottom: 6px;
+    width: 2px; border-radius: 0 2px 2px 0; background: var(--brand);
+    opacity: 0; transform: scaleY(0.35);
+    transition: opacity var(--dur) var(--ease), transform var(--dur) var(--ease);
+  }
+  .tabs button.on::before { opacity: 1; transform: scaleY(1); }
+  .tabs button.on svg { color: var(--brand-text); }
 }
+
+/* ---------- cartao ---------- */
+.card {
+  background: linear-gradient(180deg, var(--surface-2), var(--surface-1));
+  border: 1px solid var(--hair);
+  border-radius: var(--radius); padding: 14px; margin-bottom: 10px;
+  box-shadow: inset 0 1px 0 var(--hair-lit);
+  transition: border-color var(--dur) var(--ease);
+}
+.card:hover { border-color: var(--hair-strong); }
 .card .meta { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; color: var(--muted); font-size: 12.5px; margin-bottom: 6px; }
-.card .texto { font-size: 15px; margin: 6px 0 10px; word-break: break-word; }
+.card .texto { font-size: 14.5px; margin: 6px 0 10px; word-break: break-word; }
 .card .acoes { display: flex; flex-wrap: wrap; gap: 8px; }
-.card.sel { border-color: var(--accent); }
+.card.sel { border-color: var(--brand); box-shadow: inset 0 1px 0 var(--hair-lit), 0 0 0 1px var(--brand-soft); }
+.card.falhou { border-color: var(--critico); }
 
-.pill { padding: 2px 9px; border-radius: 999px; font-size: 11.5px; font-weight: 600; }
-.pill.fb { background: #1b3a5c; color: #9cc7f0; }
-.pill.ig { background: #4a2440; color: #eba9d4; }
-.pill.tiktok { background: #223; color: #aab; }
-.pill.revisao { background: #4a3a17; color: #f0cd7a; }
-.pill.oculto_auto, .pill.oculto_manual { background: #4a1f1c; color: #f0a49e; }
-.pill.oculto_plataforma { background: #33313a; color: #c3bcd0; }
-.pill.removido_origem { background: #2b2b2b; color: #9a9a9a; }
-.pill.respondido { background: #1c3a4a; color: #9ed4f0; }
-.pill.liberado { background: #1d3d28; color: #a3e0b4; }
-.pill.visivel { background: #24303a; color: #a8c0d0; }
-.pill.golpe { background: var(--red); color: #fff; }
-.pill.reclamacao { background: var(--orange); color: #201400; }
-.pill.duvida { background: var(--blue); color: #041526; }
-.pill.prova_social { background: var(--green); color: #04240e; }
-.pill.neutro { background: #333c44; color: #cbd5dd; }
+/* ---------- pills ----------
+   Duas familias de proposito. STATUS e plataforma sao pill de contorno (fundo
+   fraco + hairline colorida + texto na cor): informacao de fundo, o olho passa
+   por cima. CLASSE do comentario (golpe, reclamacao, duvida, prova social) e
+   pill solida: e o julgamento que decide a acao, entao pesa mais na tela.
+   Os nomes das classes vem do banco e nao podem mudar: apagar uma deixa o pill
+   invisivel em producao sem erro de build. */
+.pill {
+  display: inline-flex; align-items: center; gap: 5px;
+  padding: 2px 9px; border-radius: var(--r-pill);
+  font-size: 11.5px; font-weight: 600;
+  /* sem modificador o pill e neutro: Whats usa <span class="pill"> puro para
+     numero e contagem, e antes disso saia como texto solto. Superficie 3, nao 2:
+     a 2 e o topo do gradiente do cartao e o chip sumiria ali. */
+  background: var(--surface-3); color: var(--muted); border: 1px solid var(--hair-strong);
+}
+.pill.fb { background: var(--info-soft); color: var(--info); border-color: rgba(111, 168, 255, 0.35); }
+.pill.ig { background: rgba(199, 155, 240, 0.10); color: var(--serie-6); border-color: rgba(199, 155, 240, 0.35); }
+.pill.tiktok { background: var(--surface-3); color: var(--muted); border-color: var(--hair-strong); }
+.pill.revisao { background: var(--atencao-soft); color: var(--atencao); border-color: rgba(245, 165, 36, 0.35); }
+.pill.oculto_auto, .pill.oculto_manual { background: var(--critico-soft); color: var(--critico); border-color: rgba(255, 77, 77, 0.35); }
+.pill.oculto_plataforma { background: rgba(199, 155, 240, 0.10); color: var(--serie-6); border-color: rgba(199, 155, 240, 0.28); }
+.pill.removido_origem { background: var(--surface-2); color: var(--muted); border-color: var(--hair); }
+.pill.respondido { background: var(--info-soft); color: var(--info); border-color: rgba(111, 168, 255, 0.28); }
+.pill.liberado { background: var(--ok-soft); color: var(--ok); border-color: rgba(52, 209, 127, 0.35); }
+.pill.visivel { background: var(--surface-2); color: var(--muted); border-color: var(--hair); }
+.pill.golpe { background: var(--critico); color: #2a0410; border-color: transparent; }
+.pill.reclamacao { background: var(--atencao); color: #201400; border-color: transparent; }
+.pill.duvida { background: var(--info); color: #041526; border-color: transparent; }
+.pill.prova_social { background: var(--ok); color: #04240e; border-color: transparent; }
+.pill.neutro { background: var(--surface-3); color: var(--muted); border-color: var(--hair-strong); }
+/* grupo de controle do teste: NAO responder. Fica na familia rosa, longe do
+   vermelho de "oculto" e do verde de "respondida", porque nao e falha nem sucesso. */
+.pill.controle { background: rgba(255, 143, 163, 0.10); color: var(--serie-5); border-color: rgba(255, 143, 163, 0.35); }
 
-.btn { padding: 10px 14px; min-height: 44px; background: var(--panel-2); color: var(--text); border: 1px solid var(--line); }
-.btn.primario { background: var(--accent); color: #04211c; border: none; font-weight: 700; }
-.btn.perigo { background: transparent; color: var(--red); border: 1px solid var(--red); }
-.btn.ok { background: transparent; color: var(--green); border: 1px solid var(--green); }
+/* ---------- botoes ---------- */
+.btn {
+  padding: 10px 14px; min-height: 44px;
+  background: var(--surface-2); color: var(--text);
+  border: 1px solid var(--hair); border-radius: var(--r-sm);
+  transition: background var(--dur) var(--ease), border-color var(--dur) var(--ease), transform var(--dur) var(--ease);
+}
+.btn:hover:not(:disabled) { background: var(--surface-3); border-color: var(--hair-strong); }
+/* afundar e instantaneo: o dedo ja esta apertando, esperar 160ms parece travado */
+.btn:active:not(:disabled) { transform: scale(0.98); transition-duration: 0s; }
+.btn.primario {
+  background: linear-gradient(180deg, var(--brand), var(--brand-deep));
+  color: var(--brand-ink); border: none; font-weight: 700;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.22);
+}
+.btn.primario:hover:not(:disabled) {
+  background: linear-gradient(180deg, var(--brand), var(--brand-deep));
+  transform: translateY(-1px);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.22), 0 6px 20px -8px var(--brand-glow);
+}
+.btn.perigo { background: transparent; color: var(--critico); border: 1px solid rgba(255, 77, 77, 0.35); }
+.btn.perigo:hover:not(:disabled) { background: var(--critico-soft); border-color: var(--critico); }
+.btn.ok { background: transparent; color: var(--ok); border: 1px solid rgba(52, 209, 127, 0.35); }
+.btn.ok:hover:not(:disabled) { background: var(--ok-soft); border-color: var(--ok); }
 .btn:disabled { opacity: 0.5; cursor: default; }
 
+/* ---------- filtros ---------- */
 .filtros { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 12px; }
 .filtros select, .filtros input { flex: 1; min-width: 130px; min-height: 44px; }
 
-/* alvo de toque >=44px pra controles visualmente pequenos (checkbox, link externo) */
+/* alvo de toque >=44px pra controle visualmente pequeno (checkbox, link externo) */
 .alvo-toque { display: inline-flex; align-items: center; justify-content: center; min-width: 44px; min-height: 44px; margin: -12px -8px; }
-.alvo-toque input[type='checkbox'] { width: 18px; height: 18px; }
+.alvo-toque input[type='checkbox'] { width: 18px; height: 18px; accent-color: var(--brand); }
 
-.feito { color: var(--green); font-size: 13.5px; margin-top: 8px; }
-.aguardando { color: var(--orange); font-size: 13px; margin: 2px 0 6px; }
-.erro-fila { color: var(--red); font-size: 13px; margin: 2px 0 6px; line-height: 1.4; }
-.card.falhou { border-color: var(--red); }
-.acao-erro { color: var(--red); font-weight: 600; }
+/* ---------- estados de linha ---------- */
+.feito { color: var(--ok); font-size: 13.5px; margin-top: 8px; }
+.aguardando { color: var(--atencao); font-size: 13px; margin: 2px 0 6px; }
+.erro-fila { color: var(--critico); font-size: 13px; margin: 2px 0 6px; line-height: 1.4; }
+.acao-erro { color: var(--critico); font-weight: 600; }
+.erro { color: var(--critico); font-size: 13.5px; }
 
+/* ---------- aviso de versao nova ---------- */
 .aviso-versao {
   display: block; width: 100%; margin-bottom: 10px;
-  background: var(--accent); color: #04211c; font-weight: 700;
+  background: linear-gradient(180deg, var(--brand), var(--brand-deep));
+  color: var(--brand-ink); font-weight: 700;
   padding: 12px; min-height: 44px; border-radius: var(--radius);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.22);
 }
 
+/* ---------- estado vazio ---------- */
 .vazio { text-align: center; color: var(--muted); padding: 48px 16px; }
 .vazio .emoji { font-size: 40px; display: block; margin-bottom: 10px; }
 
-.aviso { background: #2a2413; border: 1px solid #5c4d1e; color: #f0d488; border-radius: var(--radius); padding: 12px 14px; margin-bottom: 12px; font-size: 13.5px; }
-.didatica { color: var(--muted); font-size: 13px; margin: 4px 0 14px; }
+/* ---------- aviso ----------
+   Faixa de 3px na esquerda + gradiente que morre em 55%: estado com forma, nao
+   so com cor. */
+.aviso {
+  position: relative;
+  background: linear-gradient(90deg, var(--atencao-soft), transparent 55%), var(--surface-1);
+  border: 1px solid var(--hair);
+  color: var(--text);
+  border-radius: var(--radius); padding: 12px 14px 12px 17px;
+  margin-bottom: 12px; font-size: 13.5px; line-height: 1.5; overflow: hidden;
+}
+.aviso::before {
+  content: ''; position: absolute; left: 0; top: 0; bottom: 0;
+  width: 3px; background: var(--atencao);
+}
+.didatica { color: var(--muted); font-size: 13px; margin: 4px 0 14px; max-width: 82ch; }
 
+/* ---------- tabela ---------- */
 table.lista { width: 100%; border-collapse: collapse; font-size: 13.5px; }
-table.lista th { text-align: left; color: var(--muted); font-weight: 600; padding: 8px 8px; border-bottom: 1px solid var(--line); }
-table.lista td { padding: 8px; border-bottom: 1px solid var(--line); vertical-align: top; }
+table.lista th {
+  text-align: left; color: var(--dim); font-weight: 600;
+  font-size: 10.5px; text-transform: uppercase; letter-spacing: 0.08em;
+  padding: 9px 8px; border-bottom: 1px solid var(--hair);
+}
+table.lista td { padding: 9px 8px; border-bottom: 1px solid var(--hair); vertical-align: top; }
+table.lista tbody tr { transition: background var(--dur) var(--ease); }
+table.lista tbody tr:hover { background: var(--surface-2); }
+table.lista tbody tr:last-child td { border-bottom: none; }
+/* a pagina nunca rola de lado: quem rola e a tabela */
 .scroll-x { overflow-x: auto; }
 
-.login { max-width: 360px; margin: 18vh auto 0; padding: 0 16px; display: flex; flex-direction: column; gap: 12px; }
-.login h1 { font-size: 20px; text-align: center; }
+/* ---------- login ---------- */
+.login {
+  max-width: 380px; margin: 16vh auto 0; padding: 22px;
+  display: flex; flex-direction: column; gap: 12px;
+  border: 1px solid var(--hair); border-radius: var(--r-lg);
+  /* o fio de luz vem do .vidro, entao precisa vir junto: box-shadow nao acumula */
+  box-shadow: inset 0 1px 0 var(--hair-lit), var(--sh-float);
+}
+.login h1 { font-size: 21px; text-align: center; letter-spacing: -0.025em; }
 .login .sub { color: var(--muted); text-align: center; font-size: 13.5px; margin-bottom: 8px; }
-.erro { color: var(--red); font-size: 13.5px; }
 
-.grade-kpi { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 10px; margin-bottom: 14px; }
-.kpi { background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); padding: 12px; }
-.kpi .num { font-size: 22px; font-weight: 700; font-variant-numeric: tabular-nums; }
-.kpi .rotulo { color: var(--muted); font-size: 12.5px; }
+/* ---------- KPI ---------- */
+.grade-kpi { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; margin-bottom: 14px; }
+.kpi {
+  position: relative; overflow: hidden;
+  background: linear-gradient(180deg, var(--surface-2), var(--surface-1));
+  border: 1px solid var(--hair); border-radius: var(--radius); padding: 14px;
+  box-shadow: inset 0 1px 0 var(--hair-lit);
+  transition: border-color var(--dur) var(--ease), transform var(--dur) var(--ease);
+}
+.kpi:hover { border-color: var(--hair-strong); transform: translateY(-1px); }
+.kpi::before {
+  content: ''; position: absolute; top: 0; left: 16px; right: 16px;
+  height: 2px; background: var(--hair-strong); border-radius: 0 0 2px 2px;
+}
+.kpi .num { font-family: var(--display); font-size: 24px; font-weight: 700; letter-spacing: -0.025em; line-height: 1.1; }
+.kpi .rotulo { color: var(--muted); font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.08em; margin-top: 4px; }
 
+/* ---------- barra de acao em lote ----------
+   O bottom esta calibrado pra altura da barra de abas de UMA linha. Mexer na
+   altura das abas quebra isto e o Fila.tsx, que calcula o padding no JS. */
 .bulkbar {
   position: fixed; bottom: calc(64px + env(safe-area-inset-bottom)); left: 12px; right: 12px; z-index: 25;
-  background: var(--panel-2); border: 1px solid var(--accent); border-radius: var(--radius);
-  padding: 10px 14px; display: flex; align-items: center; justify-content: space-between; gap: 10px;
+  background: var(--surface-3); border: 1px solid var(--brand);
+  border-radius: var(--radius); padding: 10px 14px;
+  display: flex; align-items: center; justify-content: space-between; gap: 10px;
+  box-shadow: var(--sh-float), 0 0 0 4px var(--brand-soft);
 }
 @media (min-width: 720px) { .bulkbar { position: sticky; bottom: 12px; } }
+@media (min-width: 1160px) { .bulkbar { left: calc(var(--lateral) + 26px); right: 26px; } }
+
+/* ---------- acessibilidade ----------
+   Movimento reduzido nao e "sem feedback": e feedback sem deslocamento. Corta
+   translado e escala, mantem cor e opacidade, que sao o que ensina o que houve. */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-property: opacity, background-color, border-color, color, box-shadow !important;
+    transition-duration: 140ms !important;
+  }
+  .btn:active:not(:disabled), .tabs button:active,
+  .btn.primario:hover, .kpi:hover { transform: none; }
+}
+
+/* A ondulacao entra so onde o navegador aceita backdrop-filter: url() e so no
+   desktop. Em tela pequena o custo de GPU nao paga, e quem pediu menos
+   movimento nao recebe distorcao nenhuma. */
+@media (min-width: 861px) and (prefers-reduced-motion: no-preference) {
+  .vidro { backdrop-filter: blur(var(--vidro-blur)) saturate(150%) url(#vidro-liquido); }
+}
+/* onde o navegador nao tem blur, o conteudo passaria legivel por tras da barra */
+@supports not (backdrop-filter: blur(1px)) {
+  .vidro { background: var(--surface-1); }
+}
+
+/* Vidro fosco vira superficie solida pra quem pediu menos transparencia:
+   o borrado e decoracao, a legibilidade nao e. */
+@media (prefers-reduced-transparency: reduce) {
+  .vidro {
+    backdrop-filter: none; -webkit-backdrop-filter: none;
+    background: var(--surface-1);
+  }
+}

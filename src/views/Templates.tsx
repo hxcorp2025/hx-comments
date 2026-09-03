@@ -116,7 +116,7 @@ export default function Templates({ onMudou }: { onMudou: () => void }) {
         alguém responde um comentário na Fila / Facebook / Instagram / TikTok. A resposta sai em nome
         da <b>página</b>, então escreva como o Diego falaria. Um template vale pros 3 canais.
         Editar muda só as <b>próximas</b> respostas; desligar tira do dropdown e o servidor recusa
-        template desligado (nada é apagado — dá pra religar). Toda mudança fica registrada no Log
+        template desligado (nada é apagado, dá pra religar). Toda mudança fica registrada no Log
         com seu e-mail, incluindo o texto antes/depois.
       </div>
 
@@ -139,7 +139,7 @@ export default function Templates({ onMudou }: { onMudou: () => void }) {
       </div>
 
       {lista.length === 0 && (
-        <div className="vazio"><span className="emoji">📝</span>Nenhum template ainda — crie o primeiro acima.</div>
+        <div className="vazio"><span className="emoji">📝</span>Nenhum template ainda, crie o primeiro acima.</div>
       )}
 
       {lista.map((t) => (
@@ -148,7 +148,7 @@ export default function Templates({ onMudou }: { onMudou: () => void }) {
             {t.ativa
               ? <span className="pill respondido">no dropdown</span>
               : <span className="pill neutro">desligado</span>}
-            <span>por {t.criado_por ?? '—'}</span>
+            <span>por {t.criado_por ?? '·'}</span>
           </div>
           <p className="texto"><b>{t.titulo}</b></p>
           <p className="didatica">"{t.texto}"</p>
@@ -166,7 +166,7 @@ export default function Templates({ onMudou }: { onMudou: () => void }) {
             <div style={{ marginTop: 10, display: 'flex', flexDirection: 'column', gap: 8 }}>
               {rascunhoDe === t.id && (
                 <div className="didatica">
-                  ⚠️ <b>Rascunho local recuperado</b> — difere do que está salvo (alguém pode ter
+                  ⚠️ <b>Rascunho local recuperado</b>, difere do que está salvo (alguém pode ter
                   editado depois de você).{' '}
                   <button className="btn" style={{ minHeight: 24, padding: '2px 8px' }}
                     onClick={() => descartarRascunho(t)}>

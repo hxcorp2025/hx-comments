@@ -60,7 +60,7 @@ function MidiaMsg({ m }: { m: WaMsg }) {
         </a>
       )}
       {m.tipo === 'audio' && (naoToca
-        ? <i className="didatica">🎙️ Áudio no formato do WhatsApp — este navegador não toca
+        ? <i className="didatica">🎙️ Áudio no formato do WhatsApp, este navegador não toca
             (iPhone/Safari). Abre no Chrome do computador ou Android.</i>
         : <audio controls src={url} style={{ maxWidth: 280 }} onError={() => setNaoToca(true)} />)}
       {m.tipo === 'video' && <video controls src={url} style={{ maxWidth: 280, borderRadius: 8 }} />}
@@ -79,10 +79,10 @@ const chave = (c: WaConversa) => `${c.phone_id}|${c.fone_key}`
 
 // cor do relógio da janela: <4h vermelho, <8h amarelo (mesma régua do dash 24)
 function corJanela(c: WaConversa): string {
-  if (c.janela === 'fechada') return 'var(--cinza, #8a8f98)'
-  if (c.fecha_em_h !== null && c.fecha_em_h < 4) return '#e5484d'
-  if (c.fecha_em_h !== null && c.fecha_em_h < 8) return '#f5a623'
-  return '#30a46c'
+  if (c.janela === 'fechada') return 'var(--muted)'
+  if (c.fecha_em_h !== null && c.fecha_em_h < 4) return 'var(--critico)'
+  if (c.fecha_em_h !== null && c.fecha_em_h < 8) return 'var(--atencao)'
+  return 'var(--ok)'
 }
 
 export default function Whats({ admin, onContagem }: { admin: boolean; onContagem: (n: number) => void }) {
@@ -152,10 +152,10 @@ export default function Whats({ admin, onContagem }: { admin: boolean; onContage
   const MAX_MB: Record<'image' | 'audio' | 'document', number> = { image: 5, audio: 16, document: 100 }
   function tipoDoAnexo(f: File): { tipo: 'image' | 'audio' | 'document'; erro?: string } {
     if (f.type === 'image/jpeg' || f.type === 'image/png') return { tipo: 'image' }
-    if (f.type.startsWith('image/')) return { tipo: 'image', erro: 'Esse formato de imagem o WhatsApp não aceita — usa JPG ou PNG.' }
+    if (f.type.startsWith('image/')) return { tipo: 'image', erro: 'Esse formato de imagem o WhatsApp não aceita, usa JPG ou PNG.' }
     if (f.type.startsWith('audio/')) {
       return AUDIO_OK.includes(f.type) ? { tipo: 'audio' }
-        : { tipo: 'audio', erro: 'Esse formato de áudio o WhatsApp não aceita — usa MP3, OGG ou M4A.' }
+        : { tipo: 'audio', erro: 'Esse formato de áudio o WhatsApp não aceita, usa MP3, OGG ou M4A.' }
     }
     return { tipo: 'document' }
   }
@@ -169,7 +169,7 @@ export default function Whats({ admin, onContagem }: { admin: boolean; onContage
         const { tipo, erro } = tipoDoAnexo(anexo)
         if (erro) throw new Error(erro)
         if (anexo.size > MAX_MB[tipo] * 1024 * 1024) {
-          throw new Error(`Arquivo de ${(anexo.size / 1048576).toFixed(1)}MB — o WhatsApp aceita ` +
+          throw new Error(`Arquivo de ${(anexo.size / 1048576).toFixed(1)}MB, o WhatsApp aceita ` +
             (tipo === 'image' ? 'imagem até 5MB.' : tipo === 'audio' ? 'áudio até 16MB.' : 'documento até 100MB.'))
         }
         const ext = anexo.name.split('.').pop()?.toLowerCase() ?? 'bin'
@@ -193,7 +193,7 @@ export default function Whats({ admin, onContagem }: { admin: boolean; onContage
       }
       sessionStorage.removeItem('hx_rascunho_wa_' + chave(c))
       setTexto('')
-      setAviso('Na fila de envio — sai em até 1 min. A conversa some da fila quando o envio confirmar.')
+      setAviso('Na fila de envio, sai em até 1 min. A conversa some da fila quando o envio confirmar.')
       // otimismo: some da fila local; o refresh de 30s corrige se o worker falhar
       setConversas((xs) => xs.filter((x) => chave(x) !== chave(c)))
       setAberta(null)
@@ -212,7 +212,7 @@ export default function Whats({ admin, onContagem }: { admin: boolean; onContage
     try {
       await waSugestao(c.sugestao_id, acao)
       if (acao === 'aprovar') {
-        setAviso('Aprovada — o robô envia em até 1 min.')
+        setAviso('Aprovada, o robô envia em até 1 min.')
         setConversas((xs) => xs.filter((x) => chave(x) !== chave(c)))
       } else {
         setConversas((xs) => xs.map((x) => chave(x) === chave(c)
@@ -240,7 +240,7 @@ export default function Whats({ admin, onContagem }: { admin: boolean; onContage
     <div>
       <p className="didatica">
         Conversas dos números do Sortudão esperando resposta nossa. O WhatsApp só deixa responder
-        texto livre por <b>24h depois da última mensagem do cliente</b> — o relógio "fecha em" é isso.
+        texto livre por <b>24h depois da última mensagem do cliente</b>, o relógio "fecha em" é isso.
         Resposta sai do MESMO número que a pessoa chamou, em até 1 min.
         Conversa marcada <b>controle</b> faz parte do teste do funil: não responder.
       </p>
@@ -268,7 +268,7 @@ export default function Whats({ admin, onContagem }: { admin: boolean; onContage
 
       {!verRegras && falhas.length > 0 && (
         <div className="aviso" role="alert">
-          🔴 <b>{falhas.length} resposta(s) NÃO saíram</b> — o cliente não recebeu:
+          🔴 <b>{falhas.length} resposta(s) NÃO saíram</b>, o cliente não recebeu:
           {falhas.map((f) => (
             <p key={f.id} style={{ margin: '6px 0 0' }}>
               {f.cliente}: “{f.corpo ? f.corpo.slice(0, 60) + (f.corpo.length > 60 ? '…' : '') : '📎 mídia'}” <i>({f.erro})</i>{' '}
@@ -306,8 +306,8 @@ export default function Whats({ admin, onContagem }: { admin: boolean; onContage
                   <b>{c.cliente}</b>{' '}
                   <span className="pill">{c.numero_nosso}</span>{' '}
                   {c.pendentes > 1 && <span className="pill">{c.pendentes} msgs</span>}{' '}
-                  {c.pendentes === 0 && <span className="pill" style={{ background: '#1f3d2b', color: '#7ee2a8' }}>✓ respondida</span>}{' '}
-                  {c.grupo_controle && <span className="pill" style={{ background: '#5b2333', color: '#ffb1c1' }}>controle: NÃO responder</span>}
+                  {c.pendentes === 0 && <span className="pill liberado">✓ respondida</span>}{' '}
+                  {c.grupo_controle && <span className="pill controle">controle: NÃO responder</span>}
                 </span>
                 <span style={{ color: corJanela(c), fontVariantNumeric: 'tabular-nums' }}>
                   {c.janela === 'aberta'
@@ -338,7 +338,7 @@ export default function Whats({ admin, onContagem }: { admin: boolean; onContage
               </p>
 
               {abertaAqui && (
-                <div style={{ marginTop: 8, borderTop: '1px solid var(--linha, #333)', paddingTop: 8 }}>
+                <div style={{ marginTop: 8, borderTop: '1px solid var(--hair)', paddingTop: 8 }}>
                   {threadErro && <p className="didatica">{threadErro}</p>}
                   {thread.map((m, i) => (
                     <p key={i} style={{
@@ -352,9 +352,9 @@ export default function Whats({ admin, onContagem }: { admin: boolean; onContage
                   ))}
 
                   {c.grupo_controle ? (
-                    <p className="didatica">Grupo controle — o envio fica bloqueado de propósito.</p>
+                    <p className="didatica">Grupo controle, o envio fica bloqueado de propósito.</p>
                   ) : c.janela === 'fechada' ? (
-                    <p className="didatica">Janela de 24h fechada — responder de novo só com template aprovado (em breve).</p>
+                    <p className="didatica">Janela de 24h fechada, responder de novo só com template aprovado (em breve).</p>
                   ) : (
                     <div style={{ marginTop: 8 }}>
                       {anexo && (
@@ -362,7 +362,7 @@ export default function Whats({ admin, onContagem }: { admin: boolean; onContage
                           📎 {anexo.name} ({(anexo.size / 1024).toFixed(0)} KB){' '}
                           <button className="btn" style={{ minHeight: 26, padding: '2px 8px' }}
                             onClick={() => setAnexo(null)}>remover</button>
-                          {' '}— {anexo.type.startsWith('audio/')
+                          {' '}· {anexo.type.startsWith('audio/')
                             ? 'áudio não leva legenda: o texto sai como mensagem separada'
                             : 'o texto vai junto como legenda'}
                         </p>
@@ -432,7 +432,7 @@ function RegrasWa({ admin }: { admin: boolean }) {
         Regra casa quando a mensagem do cliente <b>contém</b> o gatilho (sem diferenciar acento/maiúscula).
         <b> Sugerir</b> = aparece na fila com botão de 1 clique · <b>Auto</b> = o robô envia sozinho
         (só no 0646, e só o Matheus liga). Mensagem que fala de <b>dinheiro, compra, pix ou golpe NUNCA
-        recebe resposta automática</b> — vai pra fila humana sempre, mesmo casando regra.
+        recebe resposta automática</b>, vai pra fila humana sempre, mesmo casando regra.
       </p>
 
       {erro && <div className="aviso" role="alert">{erro}</div>}

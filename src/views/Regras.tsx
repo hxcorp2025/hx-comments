@@ -189,7 +189,7 @@ export default function Regras() {
     <div>
       <div className="aviso">
         <b>Como funciona:</b> toda regra nova nasce como "marcar pra revisão" e fica 48h em observação.
-        Só depois dá pra promover a "ocultar sozinha" — e nunca com termo genérico ("pix" sozinho JAMAIS:
+        Só depois dá pra promover a "ocultar sozinha", e nunca com termo genérico ("pix" sozinho JAMAIS:
         pix é o produto, "fiz o pix e ganhei" é prova social).
       </div>
 
@@ -242,7 +242,7 @@ export default function Regras() {
             </button>
             {r.acao === 'marcar_revisao' && (
               <button className="btn perigo" disabled={!podePromover(r) || !!r.respostas_auto}
-                title={r.respostas_auto ? 'essa regra responde — pare de responder antes de ocultar'
+                title={r.respostas_auto ? 'essa regra responde, pare de responder antes de ocultar'
                        : podePromover(r) ? '' : 'aguarde 48h de observação'}
                 onClick={() => agir(() => regraPromover(r.id))}>
                 Promover a auto-ocultar
@@ -285,7 +285,7 @@ export default function Regras() {
             <div style={{ marginTop: 10, display: 'flex', flexDirection: 'column', gap: 8 }}>
               <div className="didatica">
                 <b>Resposta automática:</b> quando um comentário bater nessa regra, a Central publica
-                <b> uma</b> destas versões (sorteada) como a página — e o comentário sai da fila como
+                <b> uma</b> destas versões (sorteada) como a página, e o comentário sai da fila como
                 "respondido". Até 3 versões pra não parecer robô; máx. 500 caracteres cada.
                 Escrever/editar é do admin; <b>qualquer operador</b> pode "Parar de responder".
               </div>
@@ -337,12 +337,12 @@ export default function Regras() {
             <div style={{ marginTop: 10, display: 'flex', flexDirection: 'column', gap: 8 }}>
               <div className="didatica">
                 <b>Versão IG (sem link):</b> no Instagram, link em comentário não clica e a URL crua
-                fica feia. Estas versões substituem as respostas base SÓ no IG — sem link (o link
+                fica feia. Estas versões substituem as respostas base SÓ no IG, sem link (o link
                 clicável vai no DM). No Facebook segue valendo a versão base, com link.
               </div>
               {[0, 1, 2].map((i) => (
                 <textarea key={i} rows={2} maxLength={500}
-                  placeholder={`versão IG ${i + 1}${i > 0 ? ' (opcional)' : ''} — sem link`}
+                  placeholder={`versão IG ${i + 1}${i > 0 ? ' (opcional)' : ''}, sem link`}
                   value={draftIg[i]}
                   onChange={(e) => setDraftIg((d) => d.map((v, j) => (j === i ? e.target.value : v)))} />
               ))}
@@ -397,11 +397,11 @@ function BlockedTikTok() {
 
   return (
     <div className="card" style={{ marginTop: 24 }}>
-      <b>🚫 TikTok — palavras bloqueadas</b>
+      <b>🚫 TikTok · palavras bloqueadas</b>
       <p className="didatica" style={{ margin: '6px 0 10px' }}>
         Vale pra conta INTEIRA de anúncios do TikTok (pega Smart+): comentário com uma dessas
         palavras é segurado <b>antes de aparecer pro público</b>. Mudanças aplicam em até 1 minuto.
-        Só o admin adiciona/remove — é a conta do cliente.
+        Só o admin adiciona/remove, é a conta do cliente.
       </p>
 
       {erro && <div className="aviso" role="alert">{erro}</div>}

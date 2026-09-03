@@ -90,7 +90,7 @@ export default function CommentCard({ c, templates, admin, travado, selecionado,
       {c.fila_status === 'erro' && (
         <p className="erro-fila">
           <AlertTriangle size={13} style={{ verticalAlign: '-2px' }} /> a plataforma recusou esta ação
-          {c.fila_erro ? ` (${c.fila_erro.slice(0, 90)})` : ''} — o comentário continua como estava lá. Tenta de novo.
+          {c.fila_erro ? ` (${c.fila_erro.slice(0, 90)})` : ''}, o comentário continua como estava lá. Tenta de novo.
         </p>
       )}
 
@@ -99,18 +99,18 @@ export default function CommentCard({ c, templates, admin, travado, selecionado,
       <div className="acoes">
         {!oculto ? (
           <button className="btn perigo" disabled={bloqueado}
-            onClick={() => agir(() => ocultar(c.id), { status: 'oculto_manual', is_hidden: true }, 'Registrado — some da plataforma em até 1 min')}>
+            onClick={() => agir(() => ocultar(c.id), { status: 'oculto_manual', is_hidden: true }, 'Registrado, some da plataforma em até 1 min')}>
             <EyeOff size={15} style={{ verticalAlign: '-2px' }} /> Ocultar
           </button>
         ) : (
           <button className="btn ok" disabled={bloqueado}
-            onClick={() => agir(() => liberar(c.id), { status: 'liberado', is_hidden: false }, 'Registrado — volta pra plataforma em até 1 min')}>
+            onClick={() => agir(() => liberar(c.id), { status: 'liberado', is_hidden: false }, 'Registrado, volta pra plataforma em até 1 min')}>
             <Eye size={15} style={{ verticalAlign: '-2px' }} /> Liberar
           </button>
         )}
         {c.status === 'revisao' && (
           <button className="btn ok" disabled={bloqueado}
-            onClick={() => agir(() => liberar(c.id), { status: 'liberado', is_hidden: false }, 'Liberado — o motor não mexe mais nele')}>
+            onClick={() => agir(() => liberar(c.id), { status: 'liberado', is_hidden: false }, 'Liberado, o motor não mexe mais nele')}>
             Está ok, liberar
           </button>
         )}
@@ -134,7 +134,7 @@ export default function CommentCard({ c, templates, admin, travado, selecionado,
       {respondendo && (
         <div style={{ marginTop: 10, display: 'flex', flexDirection: 'column', gap: 8 }}>
           {templates.length === 0 && (
-            <p className="didatica">Nenhum template ainda — qualquer operador pode criar na aba Templates.</p>
+            <p className="didatica">Nenhum template ainda, qualquer operador pode criar na aba Templates.</p>
           )}
           <select value={templateId} onChange={(e) => setTemplateId(e.target.value ? Number(e.target.value) : '')}>
             <option value="">escolher template aprovado…</option>
@@ -151,7 +151,7 @@ export default function CommentCard({ c, templates, admin, travado, selecionado,
             onClick={async () => {
               const ok = await agir(
                 () => responder(c.id, templateId === '' ? null : templateId, textoLivre.trim() || null),
-                { status: 'respondido' }, 'Resposta na fila — sai na plataforma em até 1 min')
+                { status: 'respondido' }, 'Resposta na fila, sai na plataforma em até 1 min')
               if (ok) { setRespondendo(false); setTextoLivre(''); setTemplateId('') }
             }}>
             Enviar resposta como a página

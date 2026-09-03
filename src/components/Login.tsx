@@ -23,11 +23,11 @@ export default function Login() {
     if (!email) { setErro('Preenche o e-mail primeiro.'); return }
     const { error } = await sb.auth.resetPasswordForEmail(email)
     if (error) setErro('Não consegui enviar o e-mail de redefinição.')
-    else setAviso('E-mail de redefinição enviado — olha a caixa de entrada.')
+    else setAviso('E-mail de redefinição enviado, olha a caixa de entrada.')
   }
 
   return (
-    <form className="login" onSubmit={entrar}>
+    <form className="login vidro" onSubmit={entrar}>
       <h1>🗣️ Central de Comentários</h1>
       <p className="sub">Sortudão · TikTok + Meta · Hook Mídia</p>
       <input type="email" placeholder="e-mail" value={email}
