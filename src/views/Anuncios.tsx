@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { RefreshCw, ShieldCheck, ShieldAlert, EyeOff, MessageSquareOff, MessageCircleQuestion } from 'lucide-react'
-import { verificarPedir, verificacaoAtual, traduzErro } from '../lib/db'
-import type { Verificacao, AchadoAnuncio } from '../lib/db'
+import { verificarPedir, verificacaoAtual, verificacoesHistorico, traduzErro } from '../lib/db'
+import type { Verificacao, AchadoAnuncio, Historico, HistoricoItem } from '../lib/db'
 
 // nome do botão na aba Regras DESTE app. A tela não pode mandar procurar um botão que não existe.
 const BOTAO_REGRA = 'Promover a auto-ocultar'
@@ -60,6 +60,8 @@ export default function Anuncios({ admin, autoOcultar, onIrFila }: Props) {
   const [jaTinha, setJaTinha] = useState(false)
   const [agora, setAgora] = useState(() => Date.now())
   const timer = useRef<number | null>(null)
+  const [hist, setHist] = useState<Historico | null>(null)
+  const [histErro, setHistErro] = useState(false)
 
   const puxar = useCallback(async () => {
     try {
@@ -76,6 +78,19 @@ export default function Anuncios({ admin, autoOcultar, onIrFila }: Props) {
   useEffect(() => {
     puxar()
   }, [puxar])
+
+  // histórico: carrega na abertura e de novo toda vez que uma verificação termina
+  const fimDaUltima = v && (v.status === 'ok' || v.status === 'erro') ? `${v.id}:${v.status}` : ''
+  useEffect(() => {
+    let vivo = true
+    verificacoesHistorico(20)
+      .then((h) => { if (vivo) { setHist(h); setHistErro(false) } })
+      .catch(() => { if (vivo) setHistErro(true) })
+    const t = window.setInterval(() => {
+      verificacoesHistorico(20).then((h) => { if (vivo) setHist(h) }).catch(() => {})
+    }, 5 * 60_000)
+    return () => { vivo = false; window.clearInterval(t) }
+  }, [fimDaUltima])
 
   const naFila = v?.status === 'pendente' || v?.status === 'rodando'
   // worker parado não pode prender a tela pra sempre: passada a janela, libera o botão
@@ -210,9 +225,9 @@ export default function Anuncios({ admin, autoOcultar, onIrFila }: Props) {
       {r && (
         <>
           <p className="didatica" style={{ margin: '14px 0 10px' }}>
-            {r.id === v?.id ? 'Resultado' : 'Último resultado'} da verificação #{r.id} · pedida
+            {r.id === v?.id ? 'Resultado' : 'Último resultado'} da verificação #{r.id} · pedida{' '}
             {quemPediu(r.quem)} · terminou {quando(r.terminada_em)} ({idade(r.terminada_em)})
-            {admin && <> · {r.requests} chamadas à Meta</>}
+            {admin && <> · {pl(r.requests, 'chamada', 'chamadas')} à Meta</>}
           </p>
 
           {velha && !rodando && (
@@ -388,6 +403,8 @@ export default function Anuncios({ admin, autoOcultar, onIrFila }: Props) {
         </>
       )}
 
+      <HistoricoVerificacoes h={hist} falhou={histErro} admin={admin} />
+
       {!v && !rodando && !erro && (
         <div className="vazio">
           <span className="emoji">🔎</span>
@@ -423,6 +440,105 @@ function TabelaAnuncios({ linhas }: { linhas: AchadoAnuncio[] }) {
           ))}
         </tbody>
       </table>
+    </div>
+  )
+}
+
+function textoAviso(i: HistoricoItem) {
+  if (i.origem === 'botao' || !i.aviso) return '·'
+  if (i.aviso.startsWith('enviado')) return 'enviado'
+  if (i.aviso === 'sem_novidade') return 'não precisou (nada novo)'
+  if (i.aviso === 'suprimido_cooldown') return 'repetido'
+  return 'não saiu'
+}
+
+// e-mail inteiro fica longo no celular e expõe o endereço de quem apertou
+const soNome = (q: string | null) => (q ?? '').split('@')[0]
+
+function HistoricoVerificacoes({ h, falhou, admin }: { h: Historico | null; falhou: boolean; admin: boolean }) {
+  if (falhou && !h) {
+    return <p className="didatica" style={{ marginTop: 18 }}>Não consegui carregar o histórico das verificações.</p>
+  }
+  if (!h || h.lista.length === 0) return null
+  const d = h.ultimas_24h
+  return (
+    <div className="card" style={{ marginTop: 18 }}>
+      <h3 style={{ margin: '0 0 6px' }}>Histórico das verificações</h3>
+      <p className="didatica" style={{ margin: '0 0 6px' }}>
+        <b>Últimas 24 horas:</b> {pl(d.verificacoes, 'verificação', 'verificações')} ({d.automaticas}{' '}
+        {d.automaticas === 1 ? 'automática' : 'automáticas'}, {d.pelo_botao} pelo botão
+        {d.com_erro > 0 && <>, <b style={{ color: 'var(--critico)' }}>{d.com_erro} com erro</b></>})
+        {d.ultima_automatica && <> · última automática {idade(d.ultima_automatica)}</>}
+      </p>
+      <p className="didatica" style={{ margin: '0 0 12px' }}>
+        <b>Ocultados de verdade:</b> {d.verif_saiu} pela verificação e {d.ronda_saiu} na ronda de 15 em 15 minutos
+        {d.verif_na_fila > 0 && <> · {d.verif_na_fila} ainda saindo</>}
+        {d.verif_nao_saiu + d.ronda_nao_saiu > 0 && (
+          <> · {pl(d.verif_nao_saiu + d.ronda_nao_saiu, 'não saiu', 'não saíram')} porque o comentário já
+            tinha sido apagado ou a Meta recusou</>
+        )}
+      </p>
+      <div className="scroll-x">
+        <table className="lista">
+          <thead>
+            <tr>
+              <th>Quando</th>
+              <th>Como</th>
+              <th className="num">Anúncios</th>
+              {admin && <th className="num">Posts lidos</th>}
+              <th className="num">Comentários</th>
+              <th className="num">Mandados ocultar</th>
+              <th className="num">Batem e no ar</th>
+              <th className="num">Perguntas</th>
+              <th className="num">Não li</th>
+              {admin && <th className="num">Duração</th>}
+              {admin && <th>Aviso</th>}
+            </tr>
+          </thead>
+          <tbody>
+            {h.lista.map((i) => {
+              const ok = i.status === 'ok'
+              return (
+                <tr key={i.id}>
+                  <td>{quando(i.criada_em)}</td>
+                  <td>
+                    {i.origem === 'cron' ? 'automática' : `botão · ${soNome(i.quem)}`}
+                    {i.status === 'erro' && <> · <b style={{ color: 'var(--critico)' }}>erro</b></>}
+                    {(i.status === 'pendente' || i.status === 'rodando') && <> · rodando</>}
+                  </td>
+                  <td className="num">{ok ? i.ads_ativos : '·'}</td>
+                  {admin && <td className="num">{ok ? `${i.posts_lidos ?? 0}/${i.posts_alvo ?? 0}` : '·'}</td>}
+                  <td className="num">{ok ? i.comentarios_lidos : '·'}</td>
+                  <td className="num">
+                    {ok ? i.mandados : '·'}
+                    {ok && (i.nao_saiu ?? 0) > 0 && <> ({i.nao_saiu} não saiu)</>}
+                  </td>
+                  <td className="num" style={{ color: ok && (i.bateram ?? 0) > 0 ? 'var(--critico)' : undefined }}>
+                    {ok ? i.bateram : '·'}
+                  </td>
+                  <td className="num">{ok ? (i.leads ?? '·') : '·'}</td>
+                  <td className="num" style={{ color: ok && (i.ads_ilegiveis ?? 0) > 0 ? 'var(--critico)' : undefined }}>
+                    {ok ? i.ads_ilegiveis : '·'}
+                  </td>
+                  {admin && <td className="num">{i.duracao_s != null ? `${i.duracao_s}s` : '·'}</td>}
+                  {admin && <td>{textoAviso(i)}</td>}
+                </tr>
+              )
+            })}
+          </tbody>
+        </table>
+      </div>
+      <p className="didatica" style={{ margin: '10px 0 0' }}>
+        <b>Mandados ocultar</b> é o que a verificação mandou sumir; se o autor apagou antes, não chega a
+        ser ocultado e aparece como "não saiu". <b>Batem e no ar</b> é o que casa com regra e continua
+        público, esperando alguém na Fila. <b>Perguntas</b> é cliente perguntando: nunca some sozinho.{' '}
+        <b>Não li</b> é anúncio no ar que a central não conseguiu abrir.
+        {admin && (
+          <> <b>Posts lidos</b> é quantos posts foram lidos de quantos precisavam. <b>Aviso</b> é o
+            alerta no WhatsApp: enviado, não precisou (nada novo desde o último), repetido (segurado
+            pra não encher) ou não saiu (falhou).</>
+        )}
+      </p>
     </div>
   )
 }

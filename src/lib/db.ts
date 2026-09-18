@@ -249,3 +249,51 @@ export async function verificacaoAtual(): Promise<Verificacao | null> {
   const v = data as Verificacao | null
   return v && v.id ? v : null
 }
+
+// ---------------------------------------------------------------- histórico das verificações
+export interface HistoricoItem {
+  id: number
+  origem: 'botao' | 'cron'
+  quem: string | null
+  status: 'pendente' | 'rodando' | 'ok' | 'erro'
+  erro: string | null
+  criada_em: string
+  terminada_em: string | null
+  duracao_s: number | null
+  ads_ativos: number | null
+  posts_lidos: number | null
+  posts_alvo: number | null
+  comentarios_lidos: number | null
+  bateram: number | null
+  aguardando: number | null
+  leads: number | null
+  // o que a verificação MANDOU ocultar, e o destino real na fila da Meta
+  mandados: number | null
+  saiu: number | null
+  nao_saiu: number | null
+  ads_ilegiveis: number | null
+  requests: number
+  aviso: string | null
+}
+export interface Historico {
+  ultimas_24h: {
+    verificacoes: number
+    automaticas: number
+    pelo_botao: number
+    com_erro: number
+    // saiu = a Meta confirmou; nao_saiu = cancelado (comentário já apagado) ou erro
+    verif_saiu: number
+    verif_nao_saiu: number
+    verif_na_fila: number
+    ronda_saiu: number
+    ronda_nao_saiu: number
+    ultima_automatica: string | null
+  }
+  lista: HistoricoItem[]
+}
+
+export async function verificacoesHistorico(limite = 20): Promise<Historico> {
+  const { data, error } = await sb.rpc('mod_verificacoes_historico', { p_limite: limite })
+  if (error) throw new Error(traduzErro(error.message))
+  return data as Historico
+}
