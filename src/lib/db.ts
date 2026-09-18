@@ -183,10 +183,69 @@ async function rpc(fn: string, args: Record<string, unknown>) {
 
 export function traduzErro(msg: string): string {
   if (/Failed to fetch|NetworkError|network/i.test(msg))
-    return 'Sem conexão — a ação NÃO foi registrada. Tenta de novo.'
+    return 'Sem conexão. A ação NÃO foi registrada, tenta de novo.'
   if (/statement timeout|canceling statement/i.test(msg))
     return 'O banco demorou demais. A ação NÃO foi registrada, tenta de novo.'
   if (/permission denied|acesso negado/i.test(msg))
     return 'Sem permissão pra essa ação. Fala com o Matheus.'
   return msg
+}
+
+// ---------------------------------------------------------------- verificar anúncios
+// Uma linha por anúncio ATIVO. `ilegivel` é a que dá segurança de verdade: sem ela,
+// "deu zero" pode ser cegueira em vez de paz.
+export interface AchadoAnuncio {
+  ad_id: string
+  nome: string | null
+  object_type: string | null
+  gasto_7d: number
+  posts: number
+  comentarios: number
+  bateram: number
+  aguardando: number
+  ocultados: number
+  ilegivel: boolean
+  motivo: string | null
+  // pergunta de cliente: contada à parte, nunca como "bate em regra"
+  leads?: number
+}
+
+export interface Verificacao {
+  id: number
+  origem: 'botao' | 'cron'
+  quem: string | null
+  status: 'pendente' | 'rodando' | 'ok' | 'erro'
+  fase: 'descobrir' | 'ler' | 'fechar' | 'fim'
+  criada_em: string
+  iniciada_em: string | null
+  terminada_em: string | null
+  requests: number
+  ads_ativos: number | null
+  posts_alvo: number | null
+  posts_lidos: number | null
+  ads_ilegiveis: number | null
+  comentarios_lidos: number | null
+  bateram: number | null
+  aguardando: number | null
+  ocultados: number | null
+  achados: AchadoAnuncio[] | null
+  erro: string | null
+  // enquanto uma verificação nova roda, o servidor devolve junto a última que terminou
+  anterior?: Verificacao | null
+  leads?: number | null
+  // por que o que bate em regra que oculta sozinha NÃO saiu (preenchido no fechamento)
+  bloqueio?: { ocultados_agora: number; sem_autor: number; teto: number; desligado: number; pode_ocultar: boolean } | null
+}
+
+export async function verificarPedir(): Promise<{ id: number; ja_rodando: boolean }> {
+  const { data, error } = await sb.rpc('mod_verificar_pedir', {})
+  if (error) throw new Error(traduzErro(error.message))
+  return data as { id: number; ja_rodando: boolean }
+}
+
+export async function verificacaoAtual(): Promise<Verificacao | null> {
+  const { data, error } = await sb.rpc('mod_verificacao_atual', {})
+  if (error) throw new Error(traduzErro(error.message))
+  const v = data as Verificacao | null
+  return v && v.id ? v : null
 }

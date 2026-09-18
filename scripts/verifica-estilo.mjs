@@ -133,7 +133,9 @@ const semComentario = (t) =>
     .replace(/<!--[\s\S]*?-->/g, '')
     .replace(/^\s*\/\/.*$/gm, '')
     .replace(/\/\*[\s\S]*?\*\//g, '')
-const comTravessao = [...tsxPaths, ...htmlPaths].filter((p) =>
+// .ts entra tambem: mensagem de erro do traduzErro (lib/db.ts) aparece na tela
+const tsPaths = anda(join(raiz, 'src', 'lib'), /\.ts$/)
+const comTravessao = [...tsxPaths, ...tsPaths, ...htmlPaths].filter((p) =>
   semComentario(readFileSync(p, 'utf8')).includes('—'),
 )
 if (comTravessao.length) avisos.push(`travessao em texto de interface: ${comTravessao.map(curto).join(', ')}`)

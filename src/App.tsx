@@ -1,6 +1,6 @@
 import { useEffect, useState, useCallback } from 'react'
 import type { Session } from '@supabase/supabase-js'
-import { Inbox, Music2, Facebook, Instagram, MessageCircle, ShieldBan, BarChart3, ScrollText, LogOut, FileText } from 'lucide-react'
+import { Inbox, Music2, Facebook, Instagram, MessageCircle, ShieldBan, BarChart3, ScrollText, LogOut, FileText, Megaphone } from 'lucide-react'
 import { sb } from './lib/supabase'
 import { listTemplates, contarFila } from './lib/db'
 import type { Template } from './lib/types'
@@ -13,8 +13,9 @@ import Regras from './views/Regras'
 import Templates from './views/Templates'
 import Insights from './views/Insights'
 import LogView from './views/LogView'
+import Anuncios from './views/Anuncios'
 
-type Aba = 'fila' | 'whats' | 'tiktok' | 'fb' | 'ig' | 'regras' | 'templates' | 'insights' | 'log'
+type Aba = 'fila' | 'whats' | 'tiktok' | 'fb' | 'ig' | 'anuncios' | 'regras' | 'templates' | 'insights' | 'log'
 type Acesso = 'checando' | 'liberado' | 'negado' | 'offline'
 
 const ABAS: { id: Aba; rotulo: string; Icone: typeof Inbox }[] = [
@@ -23,6 +24,7 @@ const ABAS: { id: Aba; rotulo: string; Icone: typeof Inbox }[] = [
   { id: 'tiktok', rotulo: 'TikTok', Icone: Music2 },
   { id: 'fb', rotulo: 'Facebook', Icone: Facebook },
   { id: 'ig', rotulo: 'Instagram', Icone: Instagram },
+  { id: 'anuncios', rotulo: 'Anúncios', Icone: Megaphone },
   { id: 'regras', rotulo: 'Regras', Icone: ShieldBan },
   { id: 'templates', rotulo: 'Templates', Icone: FileText },
   { id: 'insights', rotulo: 'Insights', Icone: BarChart3 },
@@ -136,6 +138,7 @@ export default function App() {
       {aba === 'tiktok' && <Feed plataforma="tiktok" templates={templates} admin={admin} />}
       {aba === 'fb' && <Feed plataforma="fb" templates={templates} admin={admin} />}
       {aba === 'ig' && <Feed plataforma="ig" templates={templates} admin={admin} />}
+      {aba === 'anuncios' && <Anuncios admin={admin} onIrFila={() => setAba('fila')} />}
       {aba === 'regras' && <Regras />}
       {aba === 'templates' && (
         <Templates onMudou={() => listTemplates().then(setTemplates).catch(() => {})} />
