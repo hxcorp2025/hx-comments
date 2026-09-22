@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from 'react'
+import { useEffect, useState, useCallback, useRef } from 'react'
 import type { Regra } from '../lib/types'
 import { listRegras, regraPreview, regraUpsert, regraPromover, regraToggle, regraRespostas, regraDm, regraRespostasIg, regraNoAr, ocultarLote, ttBwList, ttBwSolicitar, traduzErro } from '../lib/db'
 import type { NoAr } from '../lib/db'
@@ -20,6 +20,9 @@ export default function Regras() {
   const [lote, setLote] = useState('')
   // erro da lista fica NO CARD da regra: o erro do topo da pagina some da dobra no celular
   const [erroRegra, setErroRegra] = useState<{ id: number; msg: string } | null>(null)
+  // lote grande pede 2 toques: desfazer e um por um, e a lista abre quase toda marcada
+  const [confirmarLote, setConfirmarLote] = useState(false)
+  const armadoEm = useRef(0)
 
   function abrirEditorRespostas(r: Regra) {
     setErro('')
@@ -144,7 +147,7 @@ export default function Regras() {
   }, [descricao])
 
   async function abrirNoAr(r: Regra) {
-    setLote('')
+    setLote(''); setConfirmarLote(false)
     const x = await regraNoAr(r.id)
     // so desmarca o que o banco marcou como cliente. Nesta central quase tudo esta sem classe,
     // entao quase tudo vem marcado, e a tela diz isso com todas as letras.
@@ -165,7 +168,7 @@ export default function Regras() {
   // leitura pura: falhar aqui nao e "acao nao registrada"
   async function verNoAr(r: Regra) {
     if (ocupado) return
-    if (noAr?.regra === r.id) { setNoAr(null); setLote(''); return }
+    if (noAr?.regra === r.id) { setNoAr(null); setLote(''); setConfirmarLote(false); return }
     setErroRegra(null); setOcupado(true)
     try { await abrirNoAr(r) }
     catch {
@@ -176,7 +179,14 @@ export default function Regras() {
     finally { setOcupado(false) }
   }
 
+  // desarmar sem apagar o resultado do ultimo lote, que tambem mora no `lote`
+  function desarmar() {
+    setConfirmarLote(false)
+    setLote((l) => (l.startsWith('Toque de novo') ? '' : l))
+  }
+
   function marcar(id: number) {
+    desarmar()
     setNoAr((prev) => {
       if (!prev) return prev
       const m = new Set(prev.marcados)
@@ -221,7 +231,7 @@ export default function Regras() {
       })
       setLote(falhos.size
         ? `${ok} mandados ocultar. ${falhos.size} não foram: ${[...new Set(falhos.values())].join(' · ')}`
-        : `${ok} mandados ocultar. A fila tira do ar cerca de 5 por minuto, então leva uns ${Math.max(1, Math.ceil(ok / 5))} min.`)
+        : `${ok} mandados ocultar. A fila tira do ar cerca de 5 por minuto, então leva uns ${Math.max(1, Math.ceil(ok / 5))} min. Se a rede recusar algum, ele aparece em vermelho na Fila.`)
     } finally { setOcupado(false) }
   }
 
@@ -346,7 +356,7 @@ export default function Regras() {
               onClick={() => agirNaRegra(r.id, async () => {
                 await regraToggle(r.id, !r.ativa)
                 // regra desligada nao pode seguir ocultando em lote por um painel aberto
-                if (r.ativa && noAr?.regra === r.id) { setNoAr(null); setLote('') }
+                if (r.ativa && noAr?.regra === r.id) { setNoAr(null); setLote(''); setConfirmarLote(false) }
               })}>
               {r.ativa ? 'Desligar' : 'Ligar'}
             </button>
@@ -424,11 +434,11 @@ export default function Regras() {
                   </p>
                   <div className="acoes">
                     <button className="btn" disabled={ocupado}
-                      onClick={() => setNoAr({ ...noAr, marcados: new Set(noAr.lista.filter((i) => !i.protegido).map((i) => i.id)) })}>
+                      onClick={() => { desarmar(); setNoAr({ ...noAr, marcados: new Set(noAr.lista.filter((i) => !i.protegido).map((i) => i.id)) }) }}>
                       Marcar todos{noAr.lista.some((i) => i.protegido) ? ' (menos cliente)' : ''}
                     </button>
                     <button className="btn" disabled={ocupado}
-                      onClick={() => setNoAr({ ...noAr, marcados: new Set() })}>
+                      onClick={() => { desarmar(); setNoAr({ ...noAr, marcados: new Set() }) }}>
                       Desmarcar todos
                     </button>
                   </div>
@@ -466,11 +476,21 @@ export default function Regras() {
               <div className="acoes">
                 {noAr.lista.length > 0 && (
                   <button className="btn perigo" disabled={ocupado || noAr.marcados.size === 0}
-                    onClick={ocultarNoAr}>
-                    Ocultar {noAr.marcados.size} {noAr.marcados.size === 1 ? 'selecionado' : 'selecionados'}
+                    onClick={() => {
+                        const grande = noAr.marcados.size > 30
+                        if (grande && !confirmarLote) {
+                          armadoEm.current = Date.now(); setConfirmarLote(true)
+                          setLote(`Toque de novo pra confirmar que vai ocultar ${noAr.marcados.size} de uma vez.`)
+                          return
+                        }
+                        // sem o tranco, dois toques rapidos armavam e confirmavam no mesmo gesto
+                        if (grande && Date.now() - armadoEm.current < 800) return
+                        setConfirmarLote(false); ocultarNoAr()
+                      }}>
+                    {confirmarLote && noAr.marcados.size > 30 ? `Confirmar: ocultar ${noAr.marcados.size} de uma vez` : `Ocultar ${noAr.marcados.size} ${noAr.marcados.size === 1 ? 'selecionado' : 'selecionados'}`}
                   </button>
                 )}
-                <button className="btn" disabled={ocupado} onClick={() => { setNoAr(null); setLote('') }}>
+                <button className="btn" disabled={ocupado} onClick={() => { setNoAr(null); setLote(''); setConfirmarLote(false) }}>
                   Fechar
                 </button>
               </div>
