@@ -1,6 +1,7 @@
 import { useEffect, useState, useCallback } from 'react'
 import type { Regra } from '../lib/types'
-import { listRegras, regraPreview, regraUpsert, regraPromover, regraToggle, regraRespostas, regraDm, regraRespostasIg, ttBwList, ttBwSolicitar, traduzErro } from '../lib/db'
+import { listRegras, regraPreview, regraUpsert, regraPromover, regraToggle, regraRespostas, regraDm, regraRespostasIg, regraNoAr, ocultarLote, ttBwList, ttBwSolicitar, traduzErro } from '../lib/db'
+import type { NoAr } from '../lib/db'
 
 interface Preview { matches: number; total: number; pct: number; amostra: string[] }
 
@@ -14,6 +15,11 @@ export default function Regras() {
   const [ocupado, setOcupado] = useState(false)
   const [editandoRespostas, setEditandoRespostas] = useState<number | null>(null)
   const [draft, setDraft] = useState<string[]>(['', '', ''])
+  // o que a regra pega e continua no ar (aberto logo depois de promover)
+  const [noAr, setNoAr] = useState<(NoAr & { marcados: Set<number> }) | null>(null)
+  const [lote, setLote] = useState('')
+  // erro da lista fica NO CARD da regra: o erro do topo da pagina some da dobra no celular
+  const [erroRegra, setErroRegra] = useState<{ id: number; msg: string } | null>(null)
 
   function abrirEditorRespostas(r: Regra) {
     setErro('')
@@ -137,6 +143,88 @@ export default function Regras() {
     else localStorage.removeItem('hx_rascunho_regra_desc')
   }, [descricao])
 
+  async function abrirNoAr(r: Regra) {
+    setLote('')
+    const x = await regraNoAr(r.id)
+    // so desmarca o que o banco marcou como cliente. Nesta central quase tudo esta sem classe,
+    // entao quase tudo vem marcado, e a tela diz isso com todas as letras.
+    setNoAr({ ...x, marcados: new Set(x.lista.filter((i) => !i.protegido).map((i) => i.id)) })
+  }
+
+  // depois de promover a regra JA oculta sozinha. Se a leitura da lista falhar, a tela diz isso,
+  // e nao "a acao NAO foi registrada" (que e o texto do traduzErro pra falha de rede).
+  async function promoverEAbrir(r: Regra) {
+    setErroRegra(null)
+    await regraPromover(r.id)
+    try { await abrirNoAr(r) }
+    catch {
+      setErroRegra({ id: r.id, msg: 'A regra já oculta sozinha. Não consegui ler agora o que ela pega no ar: toque em "Ver o que ela pega no ar".' })
+    }
+  }
+
+  // leitura pura: falhar aqui nao e "acao nao registrada"
+  async function verNoAr(r: Regra) {
+    if (ocupado) return
+    if (noAr?.regra === r.id) { setNoAr(null); setLote(''); return }
+    setErroRegra(null); setOcupado(true)
+    try { await abrirNoAr(r) }
+    catch {
+      // nunca deixar aberto o painel de OUTRA regra fingindo ser o desta
+      setNoAr(null)
+      setErroRegra({ id: r.id, msg: 'Não consegui ler agora o que essa regra pega no ar. Tenta de novo.' })
+    }
+    finally { setOcupado(false) }
+  }
+
+  function marcar(id: number) {
+    setNoAr((prev) => {
+      if (!prev) return prev
+      const m = new Set(prev.marcados)
+      if (m.has(id)) m.delete(id); else m.add(id)
+      return { ...prev, marcados: m }
+    })
+  }
+
+  async function ocultarNoAr() {
+    if (ocupado || !noAr || noAr.marcados.size === 0) return
+    const daRegra = noAr.regra
+    const ids = [...noAr.marcados]
+    setOcupado(true); setErroRegra(null)
+    let ok = 0
+    const falhos = new Map<number, string>()
+    try {
+      for (let i = 0; i < ids.length; i += 10) {
+        const fatia = ids.slice(i, i + 10)
+        setLote(`ocultando ${Math.min(i + 10, ids.length)}/${ids.length}...`)
+        try {
+          const r = await ocultarLote(fatia)
+          ok += r.ok
+          for (const d of r.detalhe ?? []) falhos.set(d.id, d.erro)
+        } catch (e) {
+          fatia.forEach((id) => falhos.set(id, traduzErro((e as Error)?.message ?? '')))
+        }
+      }
+      // rele do servidor: sai o que foi registrado, e acima de 300 aparecem os proximos.
+      // O que falhou continua marcado pra tentar de novo.
+      let novo: NoAr | null = null
+      try { novo = await regraNoAr(daRegra) } catch { novo = null }
+      setNoAr((prev) => {
+        if (!prev || prev.regra !== daRegra) return prev
+        if (novo) return { ...novo, marcados: new Set(novo.lista.filter((i) => falhos.has(i.id)).map((i) => i.id)) }
+        const saiu = new Set(ids.filter((id) => !falhos.has(id)))
+        return {
+          ...prev,
+          total: prev.total - saiu.size,
+          lista: prev.lista.filter((i) => !saiu.has(i.id)),
+          marcados: new Set([...falhos.keys()]),
+        }
+      })
+      setLote(falhos.size
+        ? `${ok} mandados ocultar. ${falhos.size} não foram: ${[...new Set(falhos.values())].join(' · ')}`
+        : `${ok} mandados ocultar. A fila tira do ar cerca de 5 por minuto, então leva uns ${Math.max(1, Math.ceil(ok / 5))} min.`)
+    } finally { setOcupado(false) }
+  }
+
   async function verPreview() {
     setErro('')
     setOcupado(true)
@@ -166,10 +254,21 @@ export default function Regras() {
   // sem o guard de `ocupado`, duplo toque promovia a regra duas vezes
   async function agir(fn: () => Promise<unknown>) {
     if (ocupado) return
-    setErro('')
+    setErro(''); setErroRegra(null)
     setOcupado(true)
     try { await fn(); carregar() }
     catch (e) { setErro(e instanceof Error ? e.message : 'falhou') }
+    finally { setOcupado(false) }
+  }
+
+  // acao disparada de DENTRO do card: o erro fica no card, nao no topo da pagina.
+  // No celular o topo esta fora da dobra e o operador toca no botao sem ver resposta nenhuma.
+  async function agirNaRegra(id: number, fn: () => Promise<unknown>) {
+    if (ocupado) return
+    setErro(''); setErroRegra(null)
+    setOcupado(true)
+    try { await fn(); carregar() }
+    catch (e) { setErroRegra({ id, msg: e instanceof Error ? e.message : 'falhou' }) }
     finally { setOcupado(false) }
   }
 
@@ -212,7 +311,7 @@ export default function Regras() {
               )}
             </div>
           )}
-          {erro && <p className="erro">{erro}</p>}
+          {erro && <p className="erro" role="alert">{erro}</p>}
         </div>
       </div>
 
@@ -237,14 +336,25 @@ export default function Regras() {
           <p className="texto"><code>{r.termo}</code></p>
           <p className="didatica">{r.descricao}</p>
           <div className="acoes">
-            <button className="btn" onClick={() => agir(() => regraToggle(r.id, !r.ativa))}>
+            {r.acao === 'auto_ocultar' && r.ativa && (
+              <button className="btn" disabled={ocupado} aria-expanded={noAr?.regra === r.id}
+                onClick={() => verNoAr(r)}>
+                {noAr?.regra === r.id ? 'Fechar a lista' : 'Ver o que ela pega no ar'}
+              </button>
+            )}
+            <button className="btn" disabled={ocupado}
+              onClick={() => agirNaRegra(r.id, async () => {
+                await regraToggle(r.id, !r.ativa)
+                // regra desligada nao pode seguir ocultando em lote por um painel aberto
+                if (r.ativa && noAr?.regra === r.id) { setNoAr(null); setLote('') }
+              })}>
               {r.ativa ? 'Desligar' : 'Ligar'}
             </button>
             {r.acao === 'marcar_revisao' && (
               <button className="btn perigo" disabled={!podePromover(r) || !!r.respostas_auto}
                 title={r.respostas_auto ? 'essa regra responde, pare de responder antes de ocultar'
                        : podePromover(r) ? '' : 'aguarde 48h de observação'}
-                onClick={() => agir(() => regraPromover(r.id))}>
+                onClick={() => agirNaRegra(r.id, () => promoverEAbrir(r))}>
                 Promover a auto-ocultar
               </button>
             )}
@@ -256,7 +366,7 @@ export default function Regras() {
             {r.respostas_auto && editandoRespostas !== r.id && (
               <>
                 <button className="btn" onClick={() => abrirEditorRespostas(r)}>Editar respostas</button>
-                <button className="btn" onClick={() => agir(() => regraRespostas(r.id, null))}>
+                <button className="btn" onClick={() => agirNaRegra(r.id, () => regraRespostas(r.id, null))}>
                   Parar de responder
                 </button>
               </>
@@ -267,7 +377,7 @@ export default function Regras() {
             {r.dm_respostas && editandoDm !== r.id && (
               <>
                 <button className="btn" onClick={() => abrirEditorDm(r)}>Editar DM</button>
-                <button className="btn" onClick={() => agir(() => regraDm(r.id, null))}>Parar DM</button>
+                <button className="btn" onClick={() => agirNaRegra(r.id, () => regraDm(r.id, null))}>Parar DM</button>
               </>
             )}
             {r.respostas_auto && !r.respostas_auto_ig && editandoIg !== r.id && (
@@ -276,10 +386,97 @@ export default function Regras() {
             {r.respostas_auto_ig && editandoIg !== r.id && (
               <>
                 <button className="btn" onClick={() => abrirEditorIg(r)}>Editar versão IG</button>
-                <button className="btn" onClick={() => agir(() => regraRespostasIg(r.id, null))}>Usar base no IG</button>
+                <button className="btn" onClick={() => agirNaRegra(r.id, () => regraRespostasIg(r.id, null))}>Usar base no IG</button>
               </>
             )}
           </div>
+
+          {erroRegra?.id === r.id && (
+            <p className="erro" role="alert" style={{ marginTop: 8 }}>{erroRegra.msg}</p>
+          )}
+
+          {noAr?.regra === r.id && (
+            <div style={{ marginTop: 10, display: 'flex', flexDirection: 'column', gap: 8 }}
+              role="group" aria-label="comentários no ar que esta regra pega">
+              {noAr.lista.length === 0 ? (
+                <p className="didatica" style={{ margin: 0 }}>
+                  {noAr.total > 0
+                    ? <>Ocultei o que estava na tela. Ainda há <b>{noAr.total}</b> que essa regra pega
+                        no ar: abra a lista de novo pra carregar os próximos.</>
+                    : <>Nada no ar que essa regra pegue. Daqui pra frente ela age sozinha.</>}
+                </p>
+              ) : (
+                <>
+                  <p className="didatica" style={{ margin: 0 }}>
+                    A regra age sozinha só no que chegar depois.{' '}
+                    <b>{noAr.total === 1 ? 'Este comentário já está' : `Estes ${noAr.total} comentários já estão`} no ar</b>{' '}
+                    e batem nela. Desmarque o que não for ataque (elogio, cliente com problema,
+                    conversa sobre outro assunto) e oculte o resto.
+                    {noAr.lista.some((i) => !i.classe) && (
+                      <> <b>{noAr.lista.filter((i) => !i.classe).length} destes ainda não têm
+                        classe</b>, então vêm marcados mesmo se forem elogio ou pergunta de cliente.
+                        Leia antes de ocultar.</>
+                    )}
+                    {noAr.total > noAr.lista.length && (
+                      <> Mostrando {noAr.lista.length} de {noAr.total}, começando pelos que estão
+                        em anúncio ativo.</>
+                    )}
+                  </p>
+                  <div className="acoes">
+                    <button className="btn" disabled={ocupado}
+                      onClick={() => setNoAr({ ...noAr, marcados: new Set(noAr.lista.filter((i) => !i.protegido).map((i) => i.id)) })}>
+                      Marcar todos{noAr.lista.some((i) => i.protegido) ? ' (menos cliente)' : ''}
+                    </button>
+                    <button className="btn" disabled={ocupado}
+                      onClick={() => setNoAr({ ...noAr, marcados: new Set() })}>
+                      Desmarcar todos
+                    </button>
+                  </div>
+                  <div>
+                    {noAr.lista.map((i) => (
+                      <div key={i.id} style={{
+                        display: 'flex', gap: 10, alignItems: 'flex-start', padding: '10px 0',
+                        borderBottom: '1px solid var(--hair)',
+                      }}>
+                        <label className="alvo-toque" style={{ margin: '-10px -6px' }}>
+                          <input type="checkbox" checked={noAr.marcados.has(i.id)} disabled={ocupado}
+                            aria-label={`ocultar comentário de ${i.autor ?? 'autor desconhecido'}: ${i.texto.slice(0, 80)}`}
+                            onChange={() => marcar(i.id)} />
+                        </label>
+                        <span style={{ minWidth: 0, overflowWrap: 'anywhere' }}>
+                          <span className={`pill ${i.plataforma}`}>
+                            {i.plataforma === 'ig' ? 'Instagram' : i.plataforma === 'fb' ? 'Facebook' : 'TikTok'}
+                          </span>{' '}
+                          {i.classe
+                            ? <><span className={`pill ${i.classe}`}>{i.classe.replace('_', ' ')}</span>{' '}</>
+                            : <><span className="pill">sem classe</span>{' '}</>}
+                          {i.em_anuncio && <><span className="pill">em anúncio</span>{' '}</>}
+                          {i.protegido && <><span className="pill">cliente, veio desmarcado</span>{' '}</>}
+                          <span className="didatica">{i.autor ?? 'sem autor'}</span>
+                          {i.permalink && (
+                            <>{' '}<a href={i.permalink} target="_blank" rel="noreferrer noopener">ver no post</a></>
+                          )}
+                          <br />{i.texto}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </>
+              )}
+              <div className="acoes">
+                {noAr.lista.length > 0 && (
+                  <button className="btn perigo" disabled={ocupado || noAr.marcados.size === 0}
+                    onClick={ocultarNoAr}>
+                    Ocultar {noAr.marcados.size} {noAr.marcados.size === 1 ? 'selecionado' : 'selecionados'}
+                  </button>
+                )}
+                <button className="btn" disabled={ocupado} onClick={() => { setNoAr(null); setLote('') }}>
+                  Fechar
+                </button>
+              </div>
+              <p className="didatica" role="status" style={{ margin: 0, minHeight: 18 }}>{lote}</p>
+            </div>
+          )}
 
           {editandoRespostas === r.id && (
             <div style={{ marginTop: 10, display: 'flex', flexDirection: 'column', gap: 8 }}>

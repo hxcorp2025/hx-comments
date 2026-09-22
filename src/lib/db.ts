@@ -297,3 +297,24 @@ export async function verificacoesHistorico(limite = 20): Promise<Historico> {
   if (error) throw new Error(traduzErro(error.message))
   return data as Historico
 }
+
+// ---------------------------------------------------------------- regra: o que ela pega no ar
+// Promover nao mexe no passado (o motor nunca revisita comentario ja visto). Ao promover, a tela
+// mostra o que a regra ja pega e continua publico, pra alguem escolher o que ocultar em lote.
+export interface NoArItem {
+  id: number
+  plataforma: 'fb' | 'ig' | 'tiktok'
+  texto: string
+  autor: string | null
+  criado: string | null
+  classe: string | null
+  permalink: string | null
+  em_anuncio: boolean
+  // pergunta e prova social: vem desmarcados. So vale pra comentario JA classificado;
+  // nesta central quase tudo esta sem classe, entao quase tudo vem marcado (a tela avisa).
+  protegido: boolean
+}
+export interface NoAr { regra: number; total: number; lista: NoArItem[] }
+
+export const regraNoAr = (id: number) =>
+  rpc('mod_regra_no_ar', { p_id: id }) as Promise<NoAr>
