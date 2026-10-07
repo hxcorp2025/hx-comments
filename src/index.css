@@ -359,3 +359,23 @@ table.lista tbody tr:last-child td { border-bottom: none; }
     background: var(--surface-1);
   }
 }
+
+/* ---------- grupos da Fila ----------
+   Cabecalho clicavel que abre e fecha uma lista (fila da semana, fila antiga,
+   ocultados, liberados). So a fila da semana nasce aberta. */
+.grupo { margin-bottom: 10px; }
+.grupo-cab {
+  width: 100%; min-height: 52px; display: flex; align-items: center; gap: 10px;
+  padding: 10px 14px; text-align: left; cursor: pointer;
+  font: inherit; font-weight: 600; color: var(--text);
+  background: linear-gradient(180deg, var(--surface-2), var(--surface-1));
+  border: 1px solid var(--hair); border-radius: var(--radius);
+  box-shadow: inset 0 1px 0 var(--hair-lit);
+  transition: border-color var(--dur) var(--ease);
+}
+.grupo-cab:hover { border-color: var(--hair-strong); }
+.grupo-cab .grupo-seta { flex-shrink: 0; color: var(--muted); transition: transform var(--dur) var(--ease); }
+.grupo-cab[aria-expanded='true'] .grupo-seta { transform: rotate(90deg); color: var(--brand-text); }
+.grupo-titulo { flex: 1; min-width: 0; }
+.grupo-sub { display: block; margin-top: 2px; color: var(--muted); font-size: 12.5px; font-weight: 400; }
+.grupo-corpo { padding-top: 10px; }

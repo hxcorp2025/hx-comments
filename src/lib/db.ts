@@ -4,26 +4,17 @@ import type { Comment, Regra, Template, LogRow, NegativoPost, Classe, Plataforma
 // Lê a VIEW ad_comments_painel: comentário + estado real da fila de ações (pending/erro).
 const TABELA = 'ad_comments_painel'
 
-// prioridade da fila: severidade da classe primeiro (golpe antes de dúvida), depois likes, depois recência.
-// like_count é ~sempre 0 no FB, então classe é o que realmente ordena.
-const PESO: Record<string, number> = { golpe: 0, reclamacao: 1, duvida: 2, neutro: 3, prova_social: 4 }
-function ordenarFila(a: Comment, b: Comment) {
-  const pa = PESO[a.classe ?? 'neutro'] ?? 3
-  const pb = PESO[b.classe ?? 'neutro'] ?? 3
-  if (pa !== pb) return pa - pb
-  if (a.like_count !== b.like_count) return b.like_count - a.like_count
-  return (b.created_time ?? '').localeCompare(a.created_time ?? '')
-}
-
 export async function listFila(): Promise<Comment[]> {
   const { data, error } = await sb
     .from(TABELA)
     .select('*')
     .eq('status', 'revisao')
-    .order('created_time', { ascending: false })
+    .order('created_time', { ascending: false, nullsFirst: false })
     .limit(200)
   if (error) throw error
-  return (data as Comment[]).sort(ordenarFila)
+  // Mais novo em cima. Até 07/10/2026 a fila ordenava por classe (golpe primeiro) e o
+  // comentário de hoje ficava enterrado embaixo dos antigos.
+  return data as Comment[]
 }
 
 export async function contarFila(): Promise<number> {
@@ -67,13 +58,28 @@ export async function listFeed(f: FeedFiltro): Promise<Comment[]> {
   return data as Comment[]
 }
 
-export async function listUltimosOcultos(): Promise<Comment[]> {
+// Grupo "Já ocultados" da Fila: o ocultado mais recente em cima. O total vem à parte porque
+// passa de 600 ocultos e a tela mostra só os 200 do topo.
+export async function listOcultos(): Promise<{ lista: Comment[]; total: number }> {
+  const { data, error, count } = await sb
+    .from(TABELA)
+    .select('*', { count: 'exact' })
+    .in('status', ['oculto_auto', 'oculto_manual'])
+    .order('oculto_em', { ascending: false, nullsFirst: false })
+    .order('created_time', { ascending: false, nullsFirst: false })
+    .limit(200)
+  if (error) throw error
+  return { lista: data as Comment[], total: count ?? (data?.length ?? 0) }
+}
+
+// Grupo "Já liberados": a view não guarda quando liberou, então ordena pela data do comentário.
+export async function listLiberados(): Promise<Comment[]> {
   const { data, error } = await sb
     .from(TABELA)
     .select('*')
-    .in('status', ['oculto_auto', 'oculto_manual'])
-    .order('oculto_em', { ascending: false, nullsFirst: false })
-    .limit(30)
+    .eq('status', 'liberado')
+    .order('created_time', { ascending: false, nullsFirst: false })
+    .limit(200)
   if (error) throw error
   return data as Comment[]
 }
